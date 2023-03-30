@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ソース ファイル">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="リソース ファイル">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="1_データ管理">
+      <UniqueIdentifier>{670b798d-8e55-4042-b4dc-d30e01fd7de9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="1_データ管理\0_共通">
+      <UniqueIdentifier>{ae6427bd-46b2-4bff-be30-5fd83a6c22ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="2_入出力機能">
+      <UniqueIdentifier>{daeb92e4-bbac-477d-a7c6-ad20816ef4e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="2_入出力機能\1_入力データ読み込み">
+      <UniqueIdentifier>{67db286b-5ebc-405a-8c0f-a9ffaf435d1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="2_入出力機能\1_入力データ読み込み\2_制限区域">
+      <UniqueIdentifier>{d469947a-f735-4445-9b0f-a0fbb9912639}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="2_入出力機能\1_入力データ読み込み\3_気象データ%28積雪%29">
+      <UniqueIdentifier>{5a8b57fe-f33d-45ef-9b18-882fbbfd0b7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3_適地判定">
+      <UniqueIdentifier>{6cd84c79-a32b-49cf-993d-69b3e9a9636a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="4_設定ファイル">
+      <UniqueIdentifier>{11299d5b-f807-45fa-b18d-b1d1c960f95f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
+    <None Include="extended_attribute.ini">
+      <Filter>4_設定ファイル</Filter>
+    </None>
+    <None Include="judge_suitable_place_priority.ini">
+      <Filter>4_設定ファイル</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="JudgeSuitablePlace.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="UIParam.h">
+      <Filter>1_データ管理\0_共通</Filter>
+    </ClInclude>
+    <ClInclude Include="JudgeSuitablePlaceMng.h">
+      <Filter>3_適地判定</Filter>
+    </ClInclude>
+    <ClInclude Include="ImportRestrictAreaData.h">
+      <Filter>2_入出力機能\1_入力データ読み込み\2_制限区域</Filter>
+    </ClInclude>
+    <ClInclude Include="ImportWeatherData.h">
+      <Filter>2_入出力機能\1_入力データ読み込み\3_気象データ%28積雪%29</Filter>
+    </ClInclude>
+    <ClInclude Include="BuildingData.h">
+      <Filter>1_データ管理</Filter>
+    </ClInclude>
+    <ClInclude Include="ResultJudgment.h">
+      <Filter>1_データ管理</Filter>
+    </ClInclude>
+    <ClInclude Include="JudgeSuitablePlacePriorityIniFile.h">
+      <Filter>4_設定ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="AggregateData.h">
+      <Filter>1_データ管理\0_共通</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="JudgeSuitablePlace.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="JudgeSuitablePlaceMng.cpp">
+      <Filter>3_適地判定</Filter>
+    </ClCompile>
+    <ClCompile Include="ImportWeatherData.cpp">
+      <Filter>2_入出力機能\1_入力データ読み込み\3_気象データ%28積雪%29</Filter>
+    </ClCompile>
+    <ClCompile Include="ImportRestrictAreaData.cpp">
+      <Filter>2_入出力機能\1_入力データ読み込み\2_制限区域</Filter>
+    </ClCompile>
+    <ClCompile Include="ResultJudgment.cpp">
+      <Filter>1_データ管理</Filter>
+    </ClCompile>
+    <ClCompile Include="BuildingData.cpp">
+      <Filter>1_データ管理</Filter>
+    </ClCompile>
+    <ClCompile Include="ExtendedAttributeIniFile.h">
+      <Filter>4_設定ファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ColorSetting_JudgeSuitablePlace.txt">
+      <Filter>4_設定ファイル</Filter>
+    </Text>
+  </ItemGroup>
+</Project>

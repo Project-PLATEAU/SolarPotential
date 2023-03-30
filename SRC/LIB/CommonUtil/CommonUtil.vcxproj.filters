@@ -1,0 +1,145 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ソース ファイル">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="リソース ファイル">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="1_ファイル操作">
+      <UniqueIdentifier>{ada6662f-1b5f-43a7-a4d9-2b1e7f997478}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3_TIFF関連">
+      <UniqueIdentifier>{b6d23aae-c1de-43e3-8332-dfd65322e86c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="4_設定ファイル関連">
+      <UniqueIdentifier>{cd4a512d-6e65-4d0d-82cb-9e6ef36c5fea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="2_SHP関連">
+      <UniqueIdentifier>{38b4c9d2-3c88-447b-adc5-7081ed21da76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="2_SHP関連\shapelib-1.5.0">
+      <UniqueIdentifier>{12ee9e23-e501-4857-845c-9287a33ab89c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="CGeoUtil.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="CTime.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="CFileIO.h">
+      <Filter>1_ファイル操作</Filter>
+    </ClInclude>
+    <ClInclude Include="CFileUtil.h">
+      <Filter>1_ファイル操作</Filter>
+    </ClInclude>
+    <ClInclude Include="CINIFileIO.h">
+      <Filter>1_ファイル操作</Filter>
+    </ClInclude>
+    <ClInclude Include="StringEx.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="CTiffCreator.h">
+      <Filter>3_TIFF関連</Filter>
+    </ClInclude>
+    <ClInclude Include="CSunVector.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="CLightRay.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="CEpsUtil.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="TiffData.h">
+      <Filter>3_TIFF関連</Filter>
+    </ClInclude>
+    <ClInclude Include="ReadINIParam.h">
+      <Filter>4_設定ファイル関連</Filter>
+    </ClInclude>
+    <ClInclude Include="TiffDataManager.h">
+      <Filter>3_TIFF関連</Filter>
+    </ClInclude>
+    <ClInclude Include="CImageUtil.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="CGeoid.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\shapelib-1.5.0\shapefil.h">
+      <Filter>2_SHP関連\shapelib-1.5.0</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="CGeoUtil.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="CFileIO.cpp">
+      <Filter>1_ファイル操作</Filter>
+    </ClCompile>
+    <ClCompile Include="CFileUtil.cpp">
+      <Filter>1_ファイル操作</Filter>
+    </ClCompile>
+    <ClCompile Include="CINIFileIO.cpp">
+      <Filter>1_ファイル操作</Filter>
+    </ClCompile>
+    <ClCompile Include="CTiffCreator.cpp">
+      <Filter>3_TIFF関連</Filter>
+    </ClCompile>
+    <ClCompile Include="CSunVector.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="CLightRay.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="TiffData.cpp">
+      <Filter>3_TIFF関連</Filter>
+    </ClCompile>
+    <ClCompile Include="ReadINIParam.cpp">
+      <Filter>4_設定ファイル関連</Filter>
+    </ClCompile>
+    <ClCompile Include="TiffDataManager.cpp">
+      <Filter>3_TIFF関連</Filter>
+    </ClCompile>
+    <ClCompile Include="CImageUtil.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="CGeoid.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="lib\shapelib-1.5.0\shapelib.dll">
+      <Filter>2_SHP関連\shapelib-1.5.0</Filter>
+    </None>
+    <None Include="lib\shapelib-1.5.0\shapelib_i.exp">
+      <Filter>2_SHP関連\shapelib-1.5.0</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="lib\shapelib-1.5.0\shapelib.lib">
+      <Filter>2_SHP関連\shapelib-1.5.0</Filter>
+    </Library>
+    <Library Include="lib\shapelib-1.5.0\shapelib_i.lib">
+      <Filter>2_SHP関連\shapelib-1.5.0</Filter>
+    </Library>
+  </ItemGroup>
+</Project>
