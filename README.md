@@ -12,7 +12,7 @@ PLATEAUの3D都市モデルを活用し、太陽光発電ポテンシャル推�
 太陽光発電ポテンシャルの推計及び推計結果の建物屋根面への重畳、反射シミュレーションと光害発生時間推計といった解析シミュレーション機能に加えて、発電ポテンシャルの集計機能、建物構造や災害リスク等の条件に応じた太陽光パネルの適地判定機能を実装しています。  
 
 # 利用手順
-本システムの構築手順及び利用手順は[利用チュートリアル](https://aas-basicsystemsdevelopmentdept.github.io/PLATEAU-UC22-013-SolarPotential-Manual/)を参照してください。
+本システムの構築手順及び利用手順は[利用チュートリアル](https://project-plateau.github.io/UC22-013-SolarPotential/index.html)を参照してください。
 
 ## 1.システム概要
 ### 【解析・シミュレーション】
@@ -65,7 +65,7 @@ SoloarPotential　　　　　　ソリューション<br />
 
 
 ## 4.インストール
-[利用チュートリアル](https://aas-basicsystemsdevelopmentdept.github.io/PLATEAU-UC22-013-SolarPotential-Manual/)の環境構築手順書を参照の上、ソフトウェアのインストール及びセットアップを完了させてください。<br>
+[利用チュートリアル](https://project-plateau.github.io/UC22-013-SolarPotential/index.html)の環境構築手順書を参照の上、ソフトウェアのインストール及びセットアップを完了させてください。<br>
 なお、ソフトウェアにアプリケーション（実行ファイル：exe）が含まれますのでダウンロード後に、実行することが可能です。
 
 # ライセンス
