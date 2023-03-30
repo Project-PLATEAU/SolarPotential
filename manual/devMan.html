@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title環境構築手順書書</title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="環境構築手順書">
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="../toc.html">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+
+              <h1 id="環境構築手順書">環境構築手順書</h1>
+
+<h1 id="1-本書について">1 本書について</h1>
+<p>本書では、カーボンニュートラル施策推進支援システム（以下本システム）の環境構築手順について記載しています。詳細については以下も参考にしてください。</p>
+<p>
+  <a href="https://www.mlit.go.jp/plateau/libraries/technical-reports/">技術検証レポート</a>
+</p>
+	
+
+		    <h1 id="2-動作環境">2 動作環境</h1>
+
+<p>本システムの動作環境は以下の通りです。</p>		    
+<table>
+	<tr>
+		<td dir="LTR">項目</td>
+		<td dir="LTR">最小動作環境</td>
+		<td dir="LTR">推奨動作環境</td>
+	</tr>
+	<tr>
+		<td dir="LTR">OS</td>
+		<td dir="LTR">Microsoft Windows 10 または 11</td>
+		<td dir="LTR">Microsoft Windows 10 または 11</td>
+	</tr>
+	<tr>
+		<td dir="LTR">CPU</td>
+		<td dir="LTR">Intel Core i3以上</td>
+		<td dir="LTR">Intel Core i5以上</td>
+	</tr>
+	<tr>
+		<td dir="LTR">メモリ</td>
+		<td dir="LTR">4GB以上</td>
+		<td dir="LTR">8GB以上</td>
+	</tr>
+	<tr>
+		<td dir="LTR">ディスプレイ解像度</td>
+		<td dir="LTR">1024×768以上</td>
+		<td dir="LTR">1024×768以上</td>
+	</tr>
+	<tr>
+		<td dir="LTR">ネットワーク</td>
+		<td colspan="2" dir="LTR">【解析・シミュレーション】<br>不要<br><br>【適地判定・集計】<br>範囲選択を使用しない場合はネットワーク環境不要。<br>範囲選択機能を使用する場合、以下のURLを閲覧可能な環境が必要。<br>国土地理院　地理院地図<br>http://cyberjapandata.gsi.go.jp<br><br>地図表示のため標準地図を参照。<br>URL：https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png</td>
+	</tr>
+</table>
+
+<h1 id="3-インストール手順">3 インストール手順</h1>
+
+<p>アプリケーションをダウンロードします。</p>
+  <a href="https://github.com/AAS-BasicSystemsDevelopmentDept/PLATEAU-UC22-013-SolarPotential/releases/">アプリケーションのダウンロード先</a>
+	    
+<p>ダウンロード後、zipファイルを右クリックし、「すべて展開」を選択することで、zipファイルを展開します。</p>
+<p>展開されたフォルダ内の「SolarPotential.exe」をダブルクリックすることで、アプリケーションが起動します。</p>
+<img src="../resources/userMan/tutorial_028.png" >
+
+<h1 id="4-ビルド手順">4 ビルド手順</h1>
+<p>実行ファイル一式はダウンロードして利用することができますが、ソースファイルからVisualStudio2019を使ってビルドし、実行ファイルを生成することができます。</p>
+<p>Githubからダウンロードしたソースファイルの構成は以下のようになっています。</p>
+<img src="../resources/devMan/tutorial_028.png" >
+
+<p></p>
+<p>（1）本システムのソリューションファイル(SolarPotential.sln)をVisualStudio2019で開きます。</p>
+<p>ソリューションファイルはSRC\EXE\SolarPotential-CS\SolarPotentialに格納されています。</p>
+
+<p></p>
+<p>（2）SolarPotential.slnをVisualStudioで開くと、ソリューション’SolarPotential’に6つのプロジェクトが確認できます。</p>
+<p>ソリューション構成を【Release】、ソリューションプラットフォームを【x64】に設定します。</p>
+<img src="../resources/devMan/tutorial_029.png" >
+
+<p></p>
+<p>（3）[ソリューションのビルド]を選択し、ソリューション全体をビルドします。</p>
+<img src="../resources/devMan/tutorial_030.png" >
+
+<p></p>
+<p>（4）ビルドが正常終了すると、ソリューションファイルと同じフォルダにあるbin\Releaseフォルダに実行ファイルが生成されます。</p>
+<img src="../resources/devMan/tutorial_031.png" >
+
+<p>※ダウンロードしたソリューションをビルドする際に、次のメッセージが出力され、ビルドエラーとなるケースがあります。</p>
+<p>「（ファイル名）を処理できませんでした。インターネットまたは制限付きゾーン内にあるか、ファイルに Web のマークがあるためです。これらのファイルを処理するには、Web のマークを削除してください。」</p>
+<p>この場合は該当するファイルのプロパティから全般タブの下部にあるセキュリティの[許可する]をチェックしてください。</p>		    
+<img src="../resources/devMan/tutorial_032.png" >
+
+<p></p>
+<p>【参考】</p>
+<p>ソースファイルの構成は下記のようになっています。コードを修正する際に参考ください。</p>
+<p></p>
+<p>ソースファイルの構成 SoloarPotential 【ソリューション】</p>
+<p>　　　|--- AggregateData　【パネル設置適地判定のデータ管理】</p>
+<p>　　　|--- AnalyzeData　　【解析・シミュレーションのデータ管理】</p>
+<p>　　　|--- Analyzer　　　　【解析・シミュレーションの処理】</p>
+<p>　　　|---CommonUtil 【SHPやGeoTIFFのデータ処理やファイル操作】</p>
+<p>　　　|---JudgeSuitablePlace 【パネル設置適地判定の処理】</p>
+<p>　　　|---SolarPotential 【GUI】</p>
+
+		    
+<h1 id="5-準備物一覧">5 準備物一覧</h1>
+
+<p>アプリケーションを利用するために以下のデータを入手します。</p>
+<table>
+	<tr>
+		<td></td>
+		<td>データ種別</td>
+		<td>機能</td>
+		<td>用途</td>
+		<td>入力方法</td>
+	</tr>
+	<tr>
+		<td>①</td>
+		<td>3D都市モデル(CityGML)G空間情報センターから取得します。
+						<a href="https://front.geospatial.jp/">https://front.geospatial.jp/</a>
+		</td>
+		<td>全般</td>
+		<td>全般</td>
+		<td>格納フォルダパス指定</td>
+	</tr>
+	<tr>
+		<td>②</td>
+		<td>月毎の可照時間国立天文台 こよみの計算Webページから取得します。
+			
+                        <a href="https://eco.mtk.nao.ac.jp/cgi-bin/koyomi/koyomix.cgi">https://eco.mtk.nao.ac.jp/cgi-bin/koyomi/koyomix.cgi</a>
+		
+		</td>
+		<td>発電ポテンシャル推計</td>
+		<td>日射量の推計</td>
+		<td>CSVファイルを手動作成しファイルパス指定</td>
+	</tr>
+	<tr>
+		<td>③</td>
+		<td>毎月の平均日照時間気象庁 過去の気象データ・ダウンロードから取得します。
+						<a href="https://www.data.jma.go.jp/gmd/risk/obsdl/index.php">https://www.data.jma.go.jp/gmd/risk/obsdl/index.php</a>
+
+		</td>
+		<td>発電ポテンシャル推計</td>
+		<td>日射量の推計</td>
+		<td>CSVファイルをダウンロードしファイルパス指定</td>
+	</tr>
+	<tr>
+		<td>④</td>
+		<td>月毎の積雪深NEDO 日射量データベース閲覧システム METPV-20から取得します。
+						<a href="https://appww2.infoc.nedo.go.jp/appww/index.html">https://appww2.infoc.nedo.go.jp/appww/index.html</a>
+
+		</td>
+		<td>発電ポテンシャル推計</td>
+		<td>日射量の推計</td>
+		<td>CSVファイルを手動作成しファイルパス指定</td>
+	</tr>
+	<tr>
+		<td>⑤</td>
+		<td>3D都市モデル(DEMデータ)G空間情報センターから取得します。
+						<a href="https://front.geospatial.jp/">https://front.geospatial.jp/</a>
+
+		</td>
+		<td>発電ポテンシャル推計</td>
+		<td>日射量の推計</td>
+		<td>格納フォルダパス指定</td>
+	</tr>
+	<tr>
+		<td>⑥</td>
+		<td>制限区域データ（シェープファイル）<br>(加賀市　景観整備区域・石川県　石川県眺望計画）</td>
+		<td>パネル設置適地判定</td>
+		<td>パネル設置適地判定</td>
+		<td>シェープファイルパス指定</td>
+	</tr>
+	<tr>
+		<td>⑦</td>
+		<td>気象関連データ（積雪）(国土数値情報の平年値（気候）メッシュ)※データ利用条件に留意してご使用ください。</td>
+		<td>パネル設置適地判定</td>
+		<td>パネル設置適地判定</td>
+		<td>シェープファイルをダウンロードしファイルパス指定</td>
+	</tr>
+</table>
+		    
+<p>本システムでは、3D都市モデルの建築物モデルの形状(LOD1, LOD2)と属性を活用します。</p>
+<p>地形を考慮した解析を行う場合では地形(LOD1)も活用してください。</p>
+<table>
+	<tr>
+		<td dir="LTR">地物</td>
+		<td dir="LTR">地物型</td>
+		<td dir="LTR">属性区分</td>
+		<td dir="LTR">属性名</td>
+		<td dir="LTR">内容</td>
+	</tr>
+	<tr>
+		<td rowspan="12" dir="LTR">建築物LOD2</td>
+		<td rowspan="12" dir="LTR">bldg:Building</td>
+		<td rowspan="2" dir="LTR">空間属性</td>
+		<td dir="LTR">bldg:RoofSurface</td>
+		<td dir="LTR">建築物のLOD2の屋根面</td>
+	</tr>
+	<tr>
+		<td dir="LTR">bldg:WallSurface</td>
+		<td dir="LTR">建築物のLOD2の壁面</td>
+	</tr>
+	<tr>
+		<td rowspan="10" dir="LTR">主題属性</td>
+		<td dir="LTR">bldg:measuredHeight</td>
+		<td dir="LTR">計測高さ</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:buildingDisasterRiskAttribute</td>
+		<td dir="LTR">災害リスク</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:buildingID</td>
+		<td dir="LTR">建物ID</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:buildingStructureType</td>
+		<td dir="LTR">構造種別</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:buildingStructureOrgType</td>
+		<td dir="LTR">構造種別（独自）</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:BuildingRiverFloodingRiskAttribute</td>
+		<td dir="LTR">洪水浸水リスク</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:depth</td>
+		<td dir="LTR">浸水深</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:BuildingTsunamiRiskAttribute</td>
+		<td dir="LTR">津波浸水リスク</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:depth</td>
+		<td dir="LTR">浸水深</td>
+	</tr>
+	<tr>
+		<td dir="LTR">uro:BuildingLandSlideRiskAttribute</td>
+		<td dir="LTR">土砂災害リスク</td>
+	</tr>
+	<tr>
+		<td dir="LTR">建築物LOD1</td>
+		<td dir="LTR">bldg:Building</td>
+		<td dir="LTR">空間属性</td>
+		<td dir="LTR">bldg:lod1Solid</td>
+		<td dir="LTR">建築物のLOD1の立体</td>
+	</tr>
+	<tr>
+		<td dir="LTR">地形LOD1</td>
+		<td dir="LTR">dem:ReliefFeature</td>
+		<td dir="LTR">空間属性</td>
+		<td dir="LTR">dem:tin</td>
+		<td dir="LTR">地形LOD1の面</td>
+	</tr>
+</table>
+
+		    
+<!--  
+[http:// \<サーバマシンのIPアドレス\>:3000/]: http://ipアドレス:3000/
+  [42]: http://[web
+  [43]: http://[WEB/DBサーバのIPアドレス%5d:3000/
+  [44]: http://[Web
+-->
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In This Article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+      
+      <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

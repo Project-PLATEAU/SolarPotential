@@ -1,0 +1,413 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>操作マニュアル </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="操作マニュアル ">
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="../toc.html">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+              <h1 id="操作マニュアル">操作マニュアル</h1>
+
+<h1 id="1-本書について">1 本書について</h1>
+<p>本書では、カーボンニュートラル施策推進支援システム（以下本システム）の操作手順について記載しています。</p>
+<h1 id="2-使い方">2 使い方</h1>
+
+<h2 id="2-1 トップ画面">2-1 トップ画面</h2>
+<p>本アプリケーションの実行ファイル「SolarPotential.exe」を実行すると以下の画面が表示されます。</p>
+
+<p>①解析・シミュレーション</p>
+<p>発電ポテンシャル推計や反射シミュレーション等の解析処理を行う画面へ移動します。</p>
+<p>②適地判定・集計</p>
+<p>解析結果の集計やパネル設置適地判定を行う画面へ移動します。</p>
+<p>③終了</p>
+<p>アプリケーションを終了します。</p>
+<img src="../resources/userMan/tutorial_006.png" >
+
+ 
+<h2 id="2-2 解析・シミュレーション画面">2-2 解析・シミュレーション画面</h2>
+              
+<p>①入力データ選択</p>
+<p>・「選択」ボタン押下でファイル/フォルダ選択ダイアログを表示し、選択したパスがテキストボックスに入力されます。</p>
+<p>②パラメータ入力</p>
+<p>・手入力が必要な設定についてテキストボックス、またはコンボボックス等で設定します。</p>
+<p>③処理開始</p>
+<p>・入力データ選択、及びパラメータ入力後に押下すると解析開始確認ダイアログを経由し解析処理を行います。</p>
+<p>④TOP画面</p>
+<p>・解析画面を閉じTOP画面に戻ります。</p>
+<p>⑤入力内容の保存・読み込み</p>
+<p>・入力内容を保存し、繰り返し解析する場合の設定の手間を減らします。</p>
+<p>⑥処理単位の設定</p>
+<p>・処理時間を考慮し、「全体を実施」「発電ポテンシャル推計のみ」「反射シミュレーションのみ」の3通りで実施できるようにしました。</p>
+<img src="../resources/userMan/tutorial_007.png" >
+
+              
+<h2 id="2-2-1 入力データ選択">2-2-1 入力データ選択</h2>
+ 
+<p>本システムのサンプルデータは、ダウンロード可能です。</p> 
+<p>サンプルデータをお使いの場合は、以下をご指定ください。</p> 
+<p><a href="https://github.com/AAS-BasicSystemsDevelopmentDept/PLATEAU-UC22-013-SolarPotential/tree/main/SampleData/1_R4CityGML">①3D都市モデル</a></p> 
+<p><a href="https://github.com/AAS-BasicSystemsDevelopmentDept/PLATEAU-UC22-013-SolarPotential/tree/main/SampleData/2_NAOJ">②月毎の可照時間</a></p> 
+<p><a href="https://github.com/AAS-BasicSystemsDevelopmentDept/PLATEAU-UC22-013-SolarPotential/tree/main/SampleData/3_JMA">③毎月の平均日照時間</a></p> 
+<p><a href="https://github.com/AAS-BasicSystemsDevelopmentDept/PLATEAU-UC22-013-SolarPotential/tree/main/SampleData/4_NEDO">④月毎の積雪深</a></p> 
+		    <p></p> 
+<p>①3D都市モデル</p>
+<p>・CityGMLの建物データフォルダを指定します。</p>
+<p>②月毎の可照時間</p>
+<p>・国立天文台 こよみの計算Webページから取得した月毎の可照時間のCSVファイルを指定します。</p>
+<p>③毎月の平均日照時間</p>
+<p>・気象庁の過去の気象データから取得した平均日照時間のCSVファイルを指定します。</p>
+<p>④月毎の積雪深</p>
+<p>・NEDOの日射量データベース閲覧システムから取得したCSVファイルを指定します。</p>
+<p>⑤DEMデータ【オプション機能】</p>
+<p>・CityGMLのDEMデータフォルダを指定します。</p>
+<p>・処理に時間がかかり、メモリも多く使用するためオプション機能として設定しました。</p>
+<img src="../resources/userMan/tutorial_008.png" >
+
+
+<h2 id="2-2-2 パラメータ入力">2-2-2 パラメータ入力</h2>
+<p>①解析の対象外とする屋根面</p>
+<p>・対象外とする屋根面の設定を行います。</p>
+<p>・解析の対象外とする方位をプルダウンから選択し、面積と傾きをテキストボックスに入力します。</p>
+<p>②発電ポテンシャル推計：傾斜が少ない(水平に近い)屋根面の太陽光パネル面の補正</p>
+<p>・指定した傾斜未満の屋根面の方位を南向きかつ指定した傾斜角に補正します。</p>
+<p>・補正する傾きをテキストボックスに入力します。</p>
+<p>③太陽光パネル単位面積当たりの発電容量</p>
+<p>・年間予測発電量の推計を行います。</p>
+<p>・太陽光パネル単位面積当たりの発電容量をテキストボックスに入力します。</p>
+<p>④反射シミュレーション：太陽光パネル面の向き・傾きの補正</p>
+<p>・設定した方位・傾きに太陽光パネルを設置し、反射シミュレーションを行います。</p>
+<p>・「屋根面と同値」か「指定」をラジオボタンで指定します。</p>
+<p>・「指定」を選択した場合、補正する方位をプルダウンから選択し、補正する傾きをテキストボックスに入力します。</p>
+
+<img src="../resources/userMan/tutorial_009.png" >
+
+
+<h2 id="2-3 適地判定・集計画面">2-3 適地判定・集計画面</h2>
+<p>①解析結果フォルダ</p>
+<p>・解析/シミュレーションで出力した解析結果フォルダ（「解析_YYYYMMDDhhmm」のフォルダ）を指定します。</p>
+<p>②集計方法選択</p>
+<p>・推計結果の集計方法を選択します。</p>
+<p>・「集計範囲を選択」を選択した場合、地図上で任意の範囲を矩形選択できます。</p>
+<p>・範囲を選択すると座標が選択範囲パネルのテキストボックスに自動入力されます。</p>
+<p>③適地判定条件設定</p>
+<p>・チェックボックスにチェックを入れた項目が集計処理の条件として反映されます。</p>
+<p>・子項目に当たる入力欄やチェック項目は親項目のチェックがONの間のみ入力可能な状態となります。</p>
+<p>④集計結果出力フォルダ</p>
+<p>・ボタンを押下するとフォルダ選択ダイアログを開きます。</p>
+<p>・集計結果のデータが出力されるフォルダを選択します。</p>
+<p>⑤集計開始</p>
+<p>・適地判定条件設定の設定内容に従い、選択している集計方法に応じて入力された全範囲、または地図上で選択した範囲の集計を開始します。</p>
+<p>⑥TOP画面</p>
+<p>・集計画面を閉じてTOP画面に戻ります。</p>
+<p>⑦入力内容の保存・読み込み</p>
+<p>・入力内容を保存し、繰り返し解析する場合の設定の手間を減らします。</p>
+<p>※初期表示</p>
+<p>・画面表示時は各ボタンは入力可能な状態</p>
+<p>・適地判定条件設定全て✓無し状態で、子項目になるものは入力できない状態。</p>
+
+<img src="../resources/userMan/tutorial_010.png" >
+
+<h2 id="2-3-1 入力データ選択">2-3-1 適地判定条件設定</h2>
+<p>①太陽光パネルの設置の優先度が低い建物の除外条件</p>
+<p>②災害時に太陽光パネルが破損、消失する危険性のある建物の除外条件</p>
+<p>③太陽光パネルの設置に制限がある範囲の判定</p>
+
+<img src="../resources/userMan/tutorial_011.png" >
+
+
+<h2 id="2-3-2 適地判定条件設定：太陽光パネルの設置の優先度が低い建物の除外条件">2-3-2 適地判定条件設定：太陽光パネルの設置の優先度が低い建物の除外条件</h2>
+<p>①日射量が少ない建物を除外</p>
+<p>・日射量が少ない建物を除外する/除外しないを選択します。</p>
+<p>・除外する場合、「日射量」と「下位」が入力可能な状態になります。</p>
+<p>②日射量による建物除外の設定</p>
+<p>・日射量の推計結果から指定した日射量未満の建物を除外します。</p>
+<p>・日射量で建物を除外する場合、「日射量」にチェックを入れ、線引きを行う日射量をテキストボックスに入力します。</p>
+<p>③割合の設定</p>
+<p>・日射量の推計結果から指定した割合で建物を除外します。</p>
+<p>・日射量の割合で建物を除外する場合、「下位」にチェックを入れ、線引きを行う割合をテキストボックスに入力します。</p>
+<p>④建物構造による除外</p>
+<p>・CityGMLの構造種別の属性を用いて判定します。</p>
+<p>・構造上設置が困難な可能性がある建物を除外する/除外しないを選択します。</p>
+<p>⑤建物構造の選択</p>
+<p>・④にチェックを入れた場合、建物の構造種別が選択可能になります。除外する建物にチェックを入れます。</p>
+<p>⑥特定の階数の建物を除外</p>
+<p>・CityGMLの建物地上階数の属性を用いて判定します。</p>
+<p>・指定した階数範囲の建物を除外します。</p>
+<p>・チェックを入れると階数指定のテキストボックスが入力可能な状態になる。テキストボックスに建物階数を入力します。</p>
+<img src="../resources/userMan/tutorial_012.png" >
+
+<h2 id="2-3-3 適地判定条件設定：災害時に太陽光パネルが破損、消失する危険性のある建物の除外条件">2-3-3 適地判定条件設定：災害時に太陽光パネルが破損、消失する危険性のある建物の除外条件</h2>
+<p>①最大津波高さを下回る建物を除外</p>
+<p>・チェックを入れた場合、津波浸水区域のランクと建物高さを用いて建物を除外します。</p>
+<p>②河川浸水想定浸水深を下回る建物を除外</p>
+<p>・チェックを入れた場合、河川浸水想定の浸水深と建物高さを用いて建物を除外します。</p>
+<p>③土砂災害警戒区域内に存在する建物を除外</p>
+<p>・チェックを入れた場合、土砂災害特別区域内に存在する建物を除外します。</p>
+<p>④気象データ(積雪)</p>
+<p>・チェックを入れた場合、ファイル選択と⑤の項目が入力可能な状態になります。</p>
+<p>・指定した条件の建物を除外します。</p>
+<p>・「選択」ボタンを押下してシェープファイル選択画面から積雪データのシェープファイルを選択、又はシェープファイルのパスをテキストボックスに入力します。</p>
+<p>⑤積雪を考慮した除外建物の設定</p>
+<p>・ラジオボタンで積雪が多い地域の建物を除外、又は積雪荷重が大きい建物を除外の選択を行います。</p>
+<p>・「積雪が多い地域の建物を除外」を選択した場合、線引きを行う積雪量をテキストボックスに入力します。</p>
+<p>・「積雪荷重が大きい建物を除外」を選択した場合、線引きを行う積雪荷重(kgf/m2)と積雪の単位荷重(N/m2)をテキストボックスに入力します。</p>
+<img src="../resources/userMan/tutorial_013.png" >
+
+<h2 id="2-3-4 適地判定条件設定：太陽光パネルの設置に制限がある範囲の判定">2-3-4 適地判定条件設定：太陽光パネルの設置に制限がある範囲の判定</h2>
+<p>①有効/無効の設定</p>
+<p>・制限区域の有効/無効を選択します。</p>
+<p>・有効にした場合、②～④の項目が入力可能な状態になります。</p>
+<p>②シェープファイルの選択</p>
+<p>・制限を設ける区域を設定します。</p>
+<p>・「選択」ボタンを押下してシェープファイル選択画面から景観整備区域/眺望計画のシェープファイルを選択又は、景観整備区域/眺望計画のシェープファイルのパスをテキストボックスに入力します。</p>
+<p>③制限する高さの指定</p>
+<p>・制限する建物高さをテキストボックスに入力します。</p>
+<p>・未入力も可能。</p>
+<p>④制限する屋根面方位の指定</p>
+<p>・プルダウンから制限する屋根面方位の指定を行います。</p>
+<p>・方位指定なしも可能。</p>
+<img src="../resources/userMan/tutorial_014.png" >
+ 
+ <h1 id="3-出力データ">3 出力データ</h1>
+<p>解析・シミュレーション機能で出力されるデータを以下に示します。</p>
+<table>
+	<tr>
+		<td dir="LTR">機能</td>
+		<td dir="LTR">出力データ</td>
+		<td dir="LTR">内容</td>
+		<td dir="LTR">データ形式</td>
+	</tr>
+	<tr>
+		<td dir="LTR">共通</td>
+		<td dir="LTR">CityGML</td>
+		<td dir="LTR">入力したCityGMLに年間予測日射量、年間予測発電量や光害発生時間等を属性として付与したデータ。</td>
+		<td dir="LTR">CityGML</td>
+	</tr>
+	<tr>
+		<td rowspan="6" dir="LTR">発電ポテンシャル推計</td>
+		<td dir="LTR">日照量のテクスチャ</td>
+		<td dir="LTR">CityGMLと合わせて読み込むことでPLATEAU　VIEWで屋根面ごとの単位面積あたりの年間日射量を表示します。</td>
+		<td dir="LTR">JPG</td>
+	</tr>
+	<tr>
+		<td dir="LTR">建物毎年間予測発電量</td>
+		<td dir="LTR">建物ごとの年間予測日射量、年間予測発電量、パネル面積、単位面積あたりの年間予測発電量を記載したデータ。</td>
+		<td dir="LTR">CSV</td>
+	</tr>
+	<tr>
+		<td dir="LTR">単位面積あたりの年間予測日射量色分け画像</td>
+		<td dir="LTR">屋根面ごとの単位面積あたりの年間予測日射量で色分けした位置情報付き画像データ。</td>
+		<td dir="LTR">GeoTIFF</td>
+	</tr>
+	<tr>
+		<td dir="LTR">単位面積あたりの年間予測発電量色分け画像</td>
+		<td dir="LTR">建物ごとの単位面積あたりの年間予測発電量で色分けした位置情報付き画像データ。</td>
+		<td dir="LTR">GeoTIFF</td>
+	</tr>
+	<tr>
+		<td dir="LTR">単位面積あたりの年間日射量凡例</td>
+		<td dir="LTR">単位面積あたりの年間日射量の色分けの凡例画像データ。</td>
+		<td dir="LTR">JPG</td>
+	</tr>
+	<tr>
+		<td dir="LTR">単位面積あたりの年間発電量凡例</td>
+		<td dir="LTR">単位面積あたりの年間発電量の色分けの凡例画像データ。</td>
+		<td dir="LTR">JPG</td>
+	</tr>
+	<tr>
+		<td rowspan="2" dir="LTR">反射シミュレーション</td>
+		<td dir="LTR">反射シミュレーション結果</td>
+		<td dir="LTR">反射シミュレーションで解析した光線ベクトルの座標値を記載したデータ。</td>
+		<td dir="LTR">CSV、CZML</td>
+	</tr>
+	<tr>
+		<td dir="LTR">予測光害発生時間</td>
+		<td dir="LTR">建物ごとの夏至、冬至、春分の光害発生時間を記載したデータ。</td>
+		<td dir="LTR">CSV</td>
+	</tr>
+</table>
+
+<p>適地判定・集計機能で出力されるデータを以下に示します。</p>
+<table>
+	<tr>
+		<td dir="LTR">機能</td>
+		<td dir="LTR">出力データ</td>
+		<td dir="LTR">内容</td>
+		<td dir="LTR">データ形式</td>
+	</tr>
+	<tr>
+		<td rowspan="5" dir="LTR">パネル設置適地判定</td>
+		<td dir="LTR">適地判定結果データ</td>
+		<td dir="LTR">指定した条件で、建物ごとの優先度の判定結果を記載したデータ。</td>
+		<td dir="LTR">CSV</td>
+	</tr>
+	<tr>
+		<td dir="LTR">適地判定色分け画像</td>
+		<td dir="LTR">建物ごとの優先度で色分けした位置情報付き画像データ。</td>
+		<td dir="LTR">GeoTIFF</td>
+	</tr>
+	<tr>
+		<td dir="LTR">集計結果データ</td>
+		<td dir="LTR">画面UI上で選択した範囲内の年間予測日射量・年間予測発電量・反射シミュレーション結果・予測光害発生時間を集計したデータ。</td>
+		<td dir="LTR">CSV</td>
+	</tr>
+	<tr>
+		<td dir="LTR">集計範囲の画像データ</td>
+		<td dir="LTR">適地判定・集計の画面UI上で選択した解析結果の集計範囲の地図画像データ。</td>
+		<td dir="LTR">JPG</td>
+	</tr>
+	<tr>
+		<td dir="LTR">集計範囲のベクトルデータ</td>
+		<td dir="LTR">適地判定・集計の画面UI上で選択した解析結果の集計範囲の矩形のベクトルデータ。</td>
+		<td dir="LTR">KML</td>
+	</tr>
+</table>
+
+
+<h2 id="3-1 CityGML、日射量テクスチャ">3-1 CityGML、日射量テクスチャ</h2>
+<p>本システムでは、発電ポテンシャル推計機能から算出された年間予測日射量と年間予測発電量、反射シミュレーション機能から算出された夏至、春分、冬至の計5項目がLOD2の建築物モデルに属性として付与されます。</p>
+<p>出力されるCityGMLは、LOD2の屋根面毎に解析結果の日射量のテクスチャが割り当てられます。</p>
+<img src="../resources/devMan/tutorial_019.png" >
+
+<h2 id="3-2 建物毎年間予測発電量">3-2 建物毎年間予測発電量</h2>
+<p>発電ポテンシャル推計機能から算出された単位面積あたりの年間予測日射量、屋根面全体の年間予測発電量、単位面積当たりの年間予測発電量は、入力したCityGMLの3次メッシュID、建物IDに紐づいてCSV形式で出力されます。</p>
+<p>合わせて、「屋根面メッシュ抽出」で抽出されたパネル面積及び建物中心の座標（X,Y）も出力されます。</p>
+<img src="../resources/devMan/tutorial_020.png" >
+
+<h2 id="3-3 単位面積あたりの年間予測日射量色分け画像量">3-3 単位面積あたりの年間予測日射量色分け画像量</h2>
+<p>発電ポテンシャル推計から算出された単位面積あたりの年間予測日射量は3次メッシュ単位でGeoTIFFで出力されます。</p>
+<p>色のしきい値は、外部ファイル「colorSetting_SolarRad.txt」から変更可能としています。</p>
+<p>画像ファイルには位置情報が付与されているため、GISソフト（QGISやArcGIS等）で利用可能です。</p>
+<img src="../resources/devMan/tutorial_021.png" >
+
+<h2 id="3-4 単位面積あたりの年間予測発電量色分け画像">3-4 単位面積あたりの年間予測発電量色分け画像</h2>
+<p>発電ポテンシャル推計から算出された単位面積あたりの年間予測発電量は3次メッシュ単位でGeoTIFFで出力されます。</p>
+<p>色のしきい値は、外部ファイル「colorSetting_SolarPower.txt」から変更が可能としています。</p>
+<p>画像ファイルは位置情報が付与されているため、GISソフト（QGISやArcGIS等）で利用可能です。</p>
+<img src="../resources/devMan/tutorial_022.png" >
+
+<h2 id="3-5 反射シミュレーション結果">3-5 反射シミュレーション結果</h2>
+<p>反射シミュレーション機能のシミュレーション結果では、反射元の建物ID、反射元の屋根面ID、シミュレーション日時、反射点の座標（X,Y,Z）、反射先の座標（X,Y,Z）、反射先の建物IDが、夏至・春分・冬至の各CSVファイルに出力されます。</p>
+<img src="../resources/devMan/tutorial_023.png" >
+
+<h2 id="3-6 予測光害発生時間">3-6 予測光害発生時間</h2>
+<p>本システムの反射シミュレーション機能から算出された光害発生時間は、入力したCityGMLの3次メッシュID、建物IDに紐づいて、夏至、春分、冬至で出力されます。</p>
+<img src="../resources/devMan/tutorial_024.png" >
+
+<h2 id="3-7 建物別適地判定結果データ">3-7 建物別適地判定結果データ</h2>
+<p>「適地判定・集計」機能では、建物別適地判定結果として、建物ごとの優先度と各判定条件の該当(○)非該当(×)判定外(－)がCSVファイルで出力されます。</p>
+<img src="../resources/devMan/tutorial_025.png" >
+
+<h2 id="3-8 適地判定色分け画像">3-8 適地判定色分け画像</h2>
+<p>建物別適地判定結果は、優先度ごと色分け画像がGeoTIFFで出力されます。</p>
+<p>色のしきい値は、外部ファイル「 ColorSetting_JudgeSuitablePlace.txt」から変更が可能としています。</p>
+<p>画像ファイルは位置情報が付与されているため、GISソフト（QGISやArcGIS等）で利用可能です。</p>
+<img src="../resources/devMan/tutorial_026.png" >
+
+<h2 id="3-9 集計結果データ【CSV、JPG、KML】">3-9 集計結果データ【CSV、JPG、KML】</h2>
+<p>本システムの「適地判定・集計」機能で全範囲または「集計画面の背景地図表示エリア」で選択した範囲内の集計結果がCSVファイルで出力されます。</p>
+<p>CSVファイルには、範囲内建物数、年間予測日射量総計、年間予測発電量総計、光害を発生させる建物数、光害発生時間総計（夏至）、光害発生時間総計（春分）、光害発生時間総計（冬至）、範囲内優先度建物数（優先度毎5～1）が記載されます。</p>
+<p>また、集計対象の範囲は、画像（JPG形式）とKMLで出力されます。</p>
+<img src="../resources/devMan/tutorial_027.png" >
+
+
+
+
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In This Article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+      
+      <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

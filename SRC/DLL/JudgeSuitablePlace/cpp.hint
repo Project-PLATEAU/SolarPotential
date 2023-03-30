@@ -1,2 +1,0 @@
-#define JUDGESUITABLEPLACE_API __declspec(dllexport)
-#define JUDGESUITABLEPLACE_API __declspec(dllimport)
