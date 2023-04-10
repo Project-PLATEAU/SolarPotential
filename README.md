@@ -77,6 +77,6 @@ SoloarPotential　　　　　　ソリューション<br />
 - 本リポジトリの利用により生じた損失及び損害等について、国土交通省はいかなる責任も負わないものとします。
 
 ## 参考資料
-- 技術検証レポート: https://www.mlit.go.jp/plateau/libraries/technical-reports/
-- PLATEAU Webサイト Use caseページ「カーボンニュートラル推進支援システム」: https://www.mlit.go.jp/plateau/file/libraries/doc/plateau_tech_doc_0030_ver01.pdf
+- 技術検証レポート: https://www.mlit.go.jp/plateau/file/libraries/doc/plateau_tech_doc_0030_ver01.pdf
+- PLATEAU Webサイト Use caseページ「カーボンニュートラル推進支援システム」: https://www.mlit.go.jp/plateau/use-case/uc22-013/
 - ライブラリ：https://github.com/OSGeo/shapelib
