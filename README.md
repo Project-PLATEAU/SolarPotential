@@ -12,7 +12,7 @@ PLATEAUの3D都市モデルを活用し、太陽光発電ポテンシャル推�
 詳細は[技術検証レポート](https://www.mlit.go.jp/plateau/file/libraries/doc/plateau_tech_doc_0030_ver01.pdf)を参照してください。
 
 ## 3.利用手順
-本システムの構築手順及び利用手順は[利用チュートリアル](https://project-plateau.github.io/UC22-013-SolarPotential/index.html)を参照してください。
+本システムの構築手順及び利用手順は[利用チュートリアル](https://project-plateau.github.io/SolarPotential/index.html)を参照してください。
 
 ### 3.1.システム概要
 #### 【解析・シミュレーション】
@@ -62,7 +62,7 @@ SoloarPotential　　　　　　ソリューション<br />
 
 
 ### 3.4.インストール
-[利用チュートリアル](https://project-plateau.github.io/UC22-013-SolarPotential/index.html)の環境構築手順書を参照の上、ソフトウェアのインストール及びセットアップを完了させてください。<br>
+[利用チュートリアル](https://project-plateau.github.io/SolarPotential/index.html)の環境構築手順書を参照の上、ソフトウェアのインストール及びセットアップを完了させてください。<br>
 なお、ソフトウェアにアプリケーション（実行ファイル：exe）が含まれますのでダウンロード後に、実行することが可能です。
 
 ## ライセンス
