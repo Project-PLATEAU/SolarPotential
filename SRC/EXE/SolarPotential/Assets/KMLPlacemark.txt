@@ -1,0 +1,14 @@
+<Placemark id="<!--REPLACE_ID-->">
+	<name><!--REPLACE_NAME--></name>
+	<styleUrl>#__managed_style_SolarPotential</styleUrl>
+	<Polygon>
+		<outerBoundaryIs>
+			<LinearRing>
+				<!--選択範囲の座標位置を指定-->
+				<coordinates>
+					<!--REPLACE_COORDINATES-->
+				</coordinates>
+			</LinearRing>
+		</outerBoundaryIs>
+	</Polygon>
+</Placemark>

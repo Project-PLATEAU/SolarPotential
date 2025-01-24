@@ -33,6 +33,35 @@ public:
 		iYDayCnt = GetYDateCount(month, day);
 	};
 
+	CTime& operator ++ ()
+	{
+		struct tm tm = { 0, 0, 0, iDay + 1, iMonth - 1, iYear - 1900};
+		time_t t = mktime(&tm);
+		struct tm result;
+		localtime_s(&result, &t);
+		if ((result.tm_mon + 1 == 2) && (result.tm_mday == 29))	// うるう年は考慮しない
+		{
+			tm.tm_mday++;
+			t = mktime(&tm);
+			localtime_s(&result, &t);
+		}
+		iDay = result.tm_mday; iMonth = result.tm_mon + 1; iYear = result.tm_year + 1900;
+		iYDayCnt = GetYDateCount(iMonth, iDay);
+		return *this;
+	}
+
+	bool operator <= (CTime a)
+	{
+		struct tm tm1, tm2;
+		tm1.tm_year = iYear - 1900; tm1.tm_mon = iMonth - 1; tm1.tm_mday = iDay;
+		tm1.tm_hour = iHour; tm1.tm_min = iMinute; tm1.tm_sec = iSecond;
+		tm1.tm_yday = iYDayCnt;
+		tm2.tm_year = a.iYear - 1900; tm2.tm_mon = a.iMonth - 1; tm2.tm_mday = a.iDay;
+		tm2.tm_hour = a.iHour; tm2.tm_min = a.iMinute; tm2.tm_sec = a.iSecond;
+		tm2.tm_yday = a.iYDayCnt;
+		return (mktime(&tm1) <= mktime(&tm2));
+	}
+
 public:
 	// フォーマットはyyyy/mm/dd, HH:MM:SS に対応
 	void SetDateTime(const std::string& date, const std::string& time)

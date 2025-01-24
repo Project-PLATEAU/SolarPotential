@@ -1,0 +1,13 @@
+# 本システムで使用するCityGMLの名前空間
+# 対応データバージョン：CityGML(v3.1)
+xmlns='http://zgate.gsi.go.jp/ch/jmp/'
+xmlns:core='http://www.opengis.net/citygml/2.0'
+xmlns:bldg='http://www.opengis.net/citygml/building/2.0'
+xmlns:gen='http://www.opengis.net/citygml/generics/2.0'
+xmlns:gml='http://www.opengis.net/gml'
+xmlns:app='http://www.opengis.net/citygml/appearance/2.0'
+xmlns:uro='https://www.geospatial.jp/iur/uro/3.1'
+xmlns:dem='http://www.opengis.net/citygml/relief/2.0'
+xmlns:tran='http://www.opengis.net/citygml/transportation/2.0'
+xmlns:wtr='http://www.opengis.net/citygml/waterbody/2.0'
+xmlns:urf='https://www.geospatial.jp/iur/urf/3.1'

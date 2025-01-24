@@ -1,138 +1,244 @@
 #pragma once
 #include "../../LIB/CommonUtil/StringEx.h"
+#include "../../LIB/CommonUtil/CGeoUtil.h"
+#include "../../LIB/CommonUtil/ReadINIParam.h"
 
 // 方角
 enum class eDirections
 {
-	NONE = 0,
-	NORTH = 1,		// 北向き
-	EAST = 2,		// 東向き
-	SOUTH = 3,		// 南向き
-	WEST = 4		// 西向き
+	NONE = -1,
+	NORTH = 0,		// 北向き
+	EAST = 1,		// 東向き
+	SOUTH = 2,		// 南向き
+	WEST = 3		// 西向き
 };
 
-// 発電ポテンシャル推計
-class CElecPotential
+enum class eDateType
+{
+	OneMonth = 0,	// 指定月
+	OneDay,			// 指定日
+	Summer,			// 夏至
+	Winter,			// 冬至
+	Year			// 年間
+};
+
+// 入力データ
+class CInputData
 {
 public:
-	double dArea2D;			// 面積
-	eDirections eAzimuth;	// 方位
-	double dAzimuthAngle;	// 方位傾き
-	double dSlopeAngle;		// 傾き
+	std::string	strKashoData;
+	std::string	strNisshoData;
+	std::string	strSnowDepthData;
+	std::string	strLandData;
+	bool		bUseDemData;
 
-	CElecPotential(const double& d1, const eDirections& e, const double& d2, const double& d3)
+	CInputData(const std::string& s1, const std::string& s2, const std::string& s3, const std::string& s4, const bool& b)
+		: strKashoData(""), strNisshoData(""), strSnowDepthData(""), strLandData("")
 	{
-		dArea2D = d1; eAzimuth = e; dAzimuthAngle = d2; dSlopeAngle = d3;
-	}
-	CElecPotential()
-	{
-		dArea2D = 0.0; eAzimuth = eDirections::NONE; dAzimuthAngle = 0.0; dSlopeAngle = 0.0;
+		strKashoData = s1; strNisshoData = s2; strSnowDepthData= s3; strLandData = s4;
+		bUseDemData = b;
 	}
 
-	CElecPotential& operator = (const CElecPotential& v) {
-		if (&v != this) { dArea2D = v.dArea2D; eAzimuth = v.eAzimuth; dAzimuthAngle = v.dAzimuthAngle; dSlopeAngle = v.dSlopeAngle;	}
+	CInputData& operator = (const CInputData& v) {
+		if (&v != this) { strKashoData = v.strKashoData; strNisshoData = v.strNisshoData; strSnowDepthData = v.strSnowDepthData; strLandData = v.strLandData; }
 		return *this;
 	}
 };
 
-// 屋根面補正
-class CRoofSurfaceCorrect
+// 発電ポテンシャル推計条件(屋根)
+class CSolarPotential_Roof
 {
 public:
-	double dLowerAngle;			// 傾き(基準)
-	double dTargetAngle;		// 傾き(補正値)
+	// 除外条件
+	double dArea2D;				// 除外する面積
+	eDirections eDirection;		// 除外する方位
+	double dDirectionDegree;	// 除外する方位＋傾き
+	double dSlopeDegree;		// 除外する屋根面の傾き
+	bool bExclusionInterior;	// interior面を除外するか(除外:true)
 
-	CRoofSurfaceCorrect(const double& d1, const double& d2)
+	// 補正
+	double dCorrectionCaseDeg;				// 補正対象となる傾き(基準)
+	eDirections eCorrectionDirection;		// 補正する方位
+	double dCorrectionDirectionDegree;		// 補正する方位＋傾き
+
+	CSolarPotential_Roof(const double& d1, const eDirections& e1, const double& d2, const double& d3, const double& d4, const eDirections& e2, const double& d5, bool b1)
+		: dArea2D(0.0)
+		, eDirection(eDirections::NONE), dDirectionDegree(0.0)
+		, dSlopeDegree(0.0)
+		, dCorrectionCaseDeg(0.0)
+		, eCorrectionDirection(eDirections::NONE), dCorrectionDirectionDegree(0.0)
+		, bExclusionInterior(true)
 	{
-		dLowerAngle = d1; dTargetAngle = d2;
-	}
-	CRoofSurfaceCorrect()
-	{
-		dLowerAngle = 0.0; dTargetAngle = 0.0;
+		dArea2D = d1; eDirection = e1; dDirectionDegree = d2; dSlopeDegree = d3;
+		dCorrectionCaseDeg = d4; eCorrectionDirection = e2; dCorrectionDirectionDegree = d5;
+		bExclusionInterior = b1;
 	}
 
-	CRoofSurfaceCorrect& operator = (const CRoofSurfaceCorrect& v) {
-		if (&v != this) { dLowerAngle = v.dLowerAngle; dTargetAngle = v.dTargetAngle; }
+	CSolarPotential_Roof& operator = (const CSolarPotential_Roof& v) {
+		if (&v != this) 
+		{
+			dArea2D = v.dArea2D;
+			eDirection = v.eDirection; dDirectionDegree = v.dDirectionDegree;
+			dSlopeDegree = v.dSlopeDegree;
+			dCorrectionCaseDeg = v.dCorrectionCaseDeg;
+			eCorrectionDirection = v.eCorrectionDirection; dCorrectionDirectionDegree = v.dCorrectionDirectionDegree;
+			bExclusionInterior = v.bExclusionInterior;
+		}
 		return *this;
 	}
 };
 
-// 反射シミュレーション時の屋根面の向き・傾き補正
-class CReflectionRoofCorrect
+// 発電ポテンシャル推計条件(土地)
+class CSolarPotential_Land
 {
 public:
-	bool bRoofSurface;
-	bool bSpecify;
+	// 除外条件
+	double dArea2D;			// 除外する面積
+	double dSlopeAngle;		// 除外する土地面の傾き
+
+	// 補正
+	eDirections eCorrectionDirection;		// 補正する方位
+	double dCorrectionDirectionDegree;		// 補正する方位＋傾き
+
+	CSolarPotential_Land(const double& d1, const double& d2, const eDirections& e, const double& d3)
+		: dArea2D(0.0), dSlopeAngle(0.0)
+		, eCorrectionDirection(eDirections::NONE), dCorrectionDirectionDegree(0.0)
+	{
+		dArea2D = d1; dSlopeAngle = d2;
+		eCorrectionDirection = e; dCorrectionDirectionDegree = d3;
+	}
+
+	CSolarPotential_Land& operator = (const CSolarPotential_Land& v) {
+		if (&v != this) { dArea2D = v.dArea2D; dSlopeAngle = v.dSlopeAngle; eCorrectionDirection = v.eCorrectionDirection; dCorrectionDirectionDegree = v.dCorrectionDirectionDegree;}
+		return *this;
+	}
+};
+
+// 反射シミュレーション条件
+class CReflectionCorrect
+{
+public:
+	bool bCustom;
 	eDirections eAzimuth;
 	double dSlopeAngle;
 
-	CReflectionRoofCorrect(const bool& b1, const bool& b2, const eDirections& e, const double& d)
+	CReflectionCorrect() { }
+	CReflectionCorrect(const bool& b, const eDirections& e, const double& d)
+		: bCustom(false), eAzimuth(eDirections::NONE), dSlopeAngle(0.0)
 	{
-		bRoofSurface = b1; bSpecify = b2; eAzimuth = e; dSlopeAngle = d;
-	}
-	CReflectionRoofCorrect()
-	{
-		bRoofSurface = false; bSpecify = false; eAzimuth = eDirections::NONE; dSlopeAngle = 0.0;
+		bCustom = b; eAzimuth = e; dSlopeAngle = d;
 	}
 
-	CReflectionRoofCorrect& operator = (const CReflectionRoofCorrect& v) {
-		if (&v != this) { bRoofSurface = v.bRoofSurface; bSpecify = v.bSpecify; eAzimuth = v.eAzimuth; dSlopeAngle = v.dSlopeAngle; }
+	CReflectionCorrect& operator = (const CReflectionCorrect& v) {
+		if (&v != this) { bCustom = v.bCustom; eAzimuth = v.eAzimuth; dSlopeAngle = v.dSlopeAngle; }
 		return *this;
 	}
 };
 
-
-class UIParam
+class CSolarPotentialParam
 {
 public:
-	CElecPotential			_elecPotential;
-	CRoofSurfaceCorrect		_roofSurfaceCorrect;
-	double					_dAreaSolarPower;			// 太陽光パネル単位面積当たりの発電容量
-	CReflectionRoofCorrect	_reflectRoofCorrect_Lower;	// 3度未満
-	CReflectionRoofCorrect	_reflectRoofCorrect_Upper;	// 3度以上
+	CSolarPotential_Roof*	pRoof;			// 屋根面条件
+	CSolarPotential_Land*	pLand;			// 土地面条件
+	double		dPanelMakerSolarPower;		// 発電容量
+	double		dPanelRatio;				// パネル設置割合
 
-	std::wstring			strOutputDirPath;
-
-	bool					bEnableDEMData;				// DEMデータを使用するか
-
-	bool					bExecSolarPotantial;		// 発電ポテンシャル推計実行フラグ
-	bool					bExecReflection;			// 反射シミュレーション実行フラグ
-
-	UIParam()
+	CSolarPotentialParam(CSolarPotential_Roof* p1, CSolarPotential_Land* p2, const double& d1, const double& d2)
+		: pRoof(NULL), pLand(NULL), dPanelMakerSolarPower(0.0), dPanelRatio(0.0)
 	{
-		_dAreaSolarPower = 0.0;	strOutputDirPath = L"";
-		bEnableDEMData = false;
-		bExecSolarPotantial = true; bExecReflection = true;
+		pRoof = p1; pLand = p2;
+		dPanelMakerSolarPower = d1; dPanelRatio = d2;
+	}
+	~CSolarPotentialParam()
+	{
+		delete pRoof;
+		delete pLand;
 	}
 
+	CSolarPotentialParam& operator = (const CSolarPotentialParam& v) {
+		if (&v != this) { pRoof = v.pRoof; pLand = v.pLand; dPanelMakerSolarPower = v.dPanelMakerSolarPower; dPanelRatio = v.dPanelRatio; }
+		return *this;
+	}
+};
+
+class CReflectionParam
+{
 public:
-	void SetElecPotential(const double& d1, const eDirections& e, const double& d2, const double& d3)
+	CReflectionCorrect* pRoof_Lower;
+	CReflectionCorrect* pRoof_Upper;
+	CReflectionCorrect* pLand_Lower;
+	CReflectionCorrect* pLand_Upper;
+
+	double dReflectionRange;
+
+	CReflectionParam(CReflectionCorrect* p1, CReflectionCorrect* p2, CReflectionCorrect* p3, CReflectionCorrect* p4, const double& d)
+		: pRoof_Lower(NULL), pRoof_Upper(NULL)
+		, pLand_Lower(NULL), pLand_Upper(NULL)
+		, dReflectionRange(0.0)
 	{
-		_elecPotential = CElecPotential(d1, e, d2, d3);
-	};
-
-	void SetRoofSurfaceCorrect(const double& d1, const double& d2)
+		pRoof_Lower = p1; pRoof_Upper = p2;
+		pLand_Lower = p3; pLand_Upper = p4;
+		dReflectionRange = d;
+	}
+	~CReflectionParam()
 	{
-		_roofSurfaceCorrect = CRoofSurfaceCorrect(d1, d2);
-	};
+		delete pRoof_Lower;
+		delete pRoof_Upper;
+		delete pLand_Lower;
+		delete pLand_Upper;
+	}
 
-	void SetAreaSolarPower(const double& d){ _dAreaSolarPower = d; };
+	CReflectionParam& operator = (const CReflectionParam& v) {
+		if (&v != this) { pRoof_Lower = v.pRoof_Lower; pRoof_Upper = v.pRoof_Upper; pLand_Lower = v.pLand_Lower; pLand_Upper = v.pLand_Upper; dReflectionRange = v.dReflectionRange;}
+		return *this;
+	}
+};
 
-	void SetReflectionRoofCorrect_Lower(const bool& b1, const bool& b2, const eDirections& e, const double& d3)
+class CUIParam
+{
+public:
+	bool					bExecSolarPotantial;		// 発電ポテンシャル推計実行フラグ
+	bool					bExecReflection;			// 反射シミュレーション実行フラグ
+	bool					bExecBuild;					// 建物シミュレーション実行フラグ
+	bool					bExecLand;					// 土地シミュレーション実行フラグ
+
+	//std::vector<eDateType>	dateTypes;					// 解析対象期間
+	eDateType				eAnalyzeDate;				// 解析期間
+	int						nMonth;						// 指定月
+	int						nDay;						// 指定日
+	//CTime					dateStart;					// 解析対象期間(開始日)
+	//CTime					dateEnd;					// 解析対象期間(終了日)
+
+	CInputData*				pInputData;					// 入力データ
+	//CAreaDataArray*			pvecAreaData;				// 解析エリアデータ
+	int						nAreaExRange;				// 解析エリア拡張範囲
+
+	CSolarPotentialParam*	pSolarPotentialParam;		// 発電ポテンシャル推計条件
+	CReflectionParam*		pReflectionParam;			// 反射シミュレーション条件
+
+	std::wstring			strOutputDirPath;			// 解析結果出力フォルダ(data)
+
+	CUIParam()
+		: bExecSolarPotantial(false), bExecReflection(false), bExecBuild(false), bExecLand(false)
+		, eAnalyzeDate(eDateType::OneMonth), nMonth(0), nDay(0)
+		//, dateStart(), dateEnd()
+		, pInputData(NULL)
+		//, pvecAreaData(NULL)
+		, nAreaExRange(0)
+		, strOutputDirPath(L"")
 	{
-		_reflectRoofCorrect_Lower = CReflectionRoofCorrect(b1, b2, e, d3);
-	};
 
-	void SetReflectionRoofCorrect_Upper(const bool& b1, const bool& b2, const eDirections& e, const double& d3)
+	};
+	~CUIParam()
 	{
-		_reflectRoofCorrect_Upper = CReflectionRoofCorrect(b1, b2, e, d3);
+		delete pInputData;
+		//if (!pvecAreaData)
+		//{
+		//	pvecAreaData->clear();
+		//}
+		//delete pvecAreaData;
+		delete pSolarPotentialParam;
+		delete pReflectionParam;
 	};
-
-	void SetOutputDirPath(std::string str) { strOutputDirPath = CStringEx::ToWString(str); };
-
-	void SetEnableDEMData(bool b) { bEnableDEMData = b; };
-
-	void SetExecSolarPotantial(bool b) { bExecSolarPotantial = b; };
-	void SetExecReflection(bool b) { bExecReflection = b; };
 
 };

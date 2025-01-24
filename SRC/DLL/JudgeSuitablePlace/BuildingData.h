@@ -10,6 +10,7 @@
 class CBuilding
 {
 public:
+	std::string	m_strAreaId;					// エリアID
 	int			m_iMeshId;						// メッシュID
 	std::string m_strBuildingId;				// 建物ID
 	std::vector<ROOFSURFACES>* m_pRoofSurfaceList;	// 屋根リスト
@@ -29,7 +30,8 @@ public:
 
 	// コンストラクタ
 	CBuilding()
-		: m_iMeshId(0)
+		: m_strAreaId("")
+		, m_iMeshId(0)
 		, m_strBuildingId("")
 		, m_pRoofSurfaceList(NULL)
 		, dBldHeight(-1.0)

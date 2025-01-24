@@ -132,7 +132,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -143,13 +143,16 @@
       <AdditionalDependencies>gdal_i.lib;shlwapi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Gdiplus.lib%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>lib\opencv\x64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_world4100d.lib;Gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <PreBuildEvent>
       <Command>md "$(OutDir)data"
 xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>copy /Y $(ProjectDir)..\..\LIB\CommonUtil\lib\opencv\x64\bin\opencv_world4100d.dll $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -166,7 +169,7 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
       <ErrorReporting>Queue</ErrorReporting>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -178,7 +181,7 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
       <AdditionalDependencies>gdal_i.lib;shlwapi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>Gdiplus.lib%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
       <TargetMachine />
@@ -191,6 +194,9 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
       <Command>md "$(OutDir)data"
 xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>copy /Y $(ProjectDir)..\..\LIB\CommonUtil\lib\opencv\x64\bin\opencv_world4100.dll $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CGeoid.h" />
@@ -199,7 +205,28 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
     <ClInclude Include="CGeoUtil.h" />
     <ClInclude Include="CINIFileIO.h" />
     <ClInclude Include="CLightRay.h" />
+    <ClInclude Include="CPoint2DPolygon.h" />
     <ClInclude Include="CTiffCreator.h" />
+    <ClInclude Include="ExitCode.h" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\calib3d.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\core.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\cvconfig.h" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\dnn.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\features2d.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\flann.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\gapi.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\highgui.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\imgcodecs.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\imgproc.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\ml.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\objdetect.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\opencv.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\opencv_modules.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\photo.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\stitching.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\video.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\videoio.hpp" />
+    <ClInclude Include="lib\opencv\x64\include\opencv2\world.hpp" />
     <ClInclude Include="lib\shapelib-1.5.0\shapefil.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -223,6 +250,7 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
     <ClCompile Include="CGeoUtil.cpp" />
     <ClCompile Include="CINIFileIO.cpp" />
     <ClCompile Include="CLightRay.cpp" />
+    <ClCompile Include="CPoint2DPolygon.cpp" />
     <ClCompile Include="CSunVector.cpp" />
     <ClCompile Include="CTiffCreator.cpp" />
     <ClCompile Include="pch.cpp">
@@ -236,6 +264,8 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
     <ClCompile Include="TiffDataManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="lib\opencv\x64\bin\opencv_world4100.dll" />
+    <None Include="lib\opencv\x64\bin\opencv_world4100d.dll" />
     <None Include="lib\shapelib-1.5.0\shapelib.dll">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -246,6 +276,14 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Library Include="lib\opencv\x64\lib\opencv_world4100.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
+    <Library Include="lib\opencv\x64\lib\opencv_world4100d.lib">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </Library>
     <Library Include="lib\shapelib-1.5.0\shapelib.lib">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -254,6 +292,9 @@ xcopy /e /y /c /q /d /r "$(ProjectDir)data" "$(OutDir)data"</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="lib\opencv\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

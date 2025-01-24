@@ -81,6 +81,9 @@
     <ClInclude Include="AggregateData.h">
       <Filter>1_データ管理\0_共通</Filter>
     </ClInclude>
+    <ClInclude Include="LandData.h">
+      <Filter>1_データ管理</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JudgeSuitablePlace.cpp">
@@ -109,6 +112,9 @@
     </ClCompile>
     <ClCompile Include="ExtendedAttributeIniFile.h">
       <Filter>4_設定ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="LandData.cpp">
+      <Filter>1_データ管理</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

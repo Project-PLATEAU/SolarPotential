@@ -47,29 +47,39 @@ extern "C" {
         bool bParam_2_1;                // 高さが想定される最大津波高さを下回る建物を除外
         bool bParam_2_2;                // 建物高さが想定される河川浸水想定浸水深を下回る建物を除外
         bool bParam_2_3;                // 土砂災害警戒区域内に存在する建物を除外
-        char  strParam_2_4[MAX_PATH];   // 気象データ(積雪)フォルダパス
+        char* strParam_2_4;             // 気象データ(積雪)フォルダパス
         double dParam_2_4_1;            // 気象データ(積雪)_cm以上
         double dParam_2_4_2;            // 積雪荷重(kgf/m3)
         double dParam_2_4_3;            // 単位荷重(N/m3)
 
         // 太陽光パネルの設置に制限がある施設の判定
-        char         strParam_3_1[MAX_PATH];  // 制限を設ける範囲のシェープファイル_フォルダパス１
+        char*        strParam_3_1;            // 制限を設ける範囲のシェープファイル_フォルダパス１
         double       dParam_3_1_1;            // 制限を設ける範囲のシェープファイル_高さ１
         int          iParam_3_1_2;            // 制限を設ける範囲のシェープファイル_方位１
-        char         strParam_3_2[MAX_PATH];  // 制限を設ける範囲のシェープファイル_フォルダパス２
+        int          iParam_3_1_3;            // 制限を設ける範囲のシェープファイル_座標系１
+        char*        strParam_3_2;            // 制限を設ける範囲のシェープファイル_フォルダパス２
         double       dParam_3_2_1;            // 制限を設ける範囲のシェープファイル_高さ２
         int          iParam_3_2_2;            // 制限を設ける範囲のシェープファイル_方位２
-        char         strParam_3_3[MAX_PATH];  // 制限を設ける範囲のシェープファイル_フォルダパス３
+        int          iParam_3_2_3;            // 制限を設ける範囲のシェープファイル_座標系２
+        char*        strParam_3_3;            // 制限を設ける範囲のシェープファイル_フォルダパス３
         double       dParam_3_3_1;            // 制限を設ける範囲のシェープファイル_高さ３
         int          iParam_3_3_2;            // 制限を設ける範囲のシェープファイル_方位３
+        int          iParam_3_3_3;            // 制限を設ける範囲のシェープファイル_座標系３
     };
 
+    struct AggregateTarget
+    {
+        bool bExecBuild;				// 建物実行フラグ
+        bool bExecLand;					// 土地実行フラグ
+
+    };
 
 	// パラメータ設定
     JUDGESUITABLEPLACE_API void InitializeUIParam();
 	JUDGESUITABLEPLACE_API void SetAggregateParam(AggregateParam* aggregateParam);	        // 画面パラメータ
-    JUDGESUITABLEPLACE_API bool SetOutputPath(char* aggregatePath);		// 出力フォルダ
-    JUDGESUITABLEPLACE_API bool SetBldgResultPath(char* analyzePath);	// 解析結果フォルダ
+    JUDGESUITABLEPLACE_API bool SetOutputPath(char* aggregatePath);		    // 出力フォルダ
+    JUDGESUITABLEPLACE_API bool SetAnalyzeResultPath(char* analyzePath);	// 解析結果フォルダ
+    JUDGESUITABLEPLACE_API void SetAggregateTarget(AggregateTarget* target);    // 集計対象
 
     // 適地判定処理開始
     JUDGESUITABLEPLACE_API int JadgeStart(); 

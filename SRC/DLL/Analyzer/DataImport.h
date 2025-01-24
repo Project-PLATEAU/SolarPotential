@@ -1,5 +1,4 @@
 #pragma once
-#include "Analyzer.h"
 #include "../../LIB/CommonUtil/StringEx.h"
 #include <stdlib.h>
 #include <stdio.h>

@@ -10,6 +10,8 @@
 #include "../../LIB/CommonUtil/CFileUtil.h"
 #include "../../LIB/CommonUtil/ReadINIParam.h"
 
+#include <filesystem>
+
 #ifdef _DEBUG
 #include <sys/timeb.h>
 #include <time.h>
@@ -82,13 +84,16 @@ JUDGESUITABLEPLACE_API void SetAggregateParam(AggregateParam* aggregateParam)
             aggregateParam->strParam_3_1,
             aggregateParam->dParam_3_1_1,
             (eDirections)aggregateParam->iParam_3_1_2,
+            (eDatum)aggregateParam->iParam_3_1_3,
             aggregateParam->strParam_3_2,
             aggregateParam->dParam_3_2_1,
             (eDirections)aggregateParam->iParam_3_2_2,
+            (eDatum)aggregateParam->iParam_3_2_3,
             aggregateParam->strParam_3_3,
             aggregateParam->dParam_3_3_1,
-            (eDirections)aggregateParam->iParam_3_3_2
-        );
+            (eDirections)aggregateParam->iParam_3_3_2,
+            (eDatum)aggregateParam->iParam_3_3_3
+            );
 
 	return;
 }
@@ -99,8 +104,7 @@ JUDGESUITABLEPLACE_API bool SetOutputPath(char* aggregatePath)
     setlocale(LC_ALL, "");
 
     // 出力用フォルダチェック
-    std::wstring path = CStringEx::ToWString(aggregatePath);
-    pParam->m_strOutputDirPath = GetFUtil()->Combine(path, L"data");
+    pParam->m_strOutputDirPath = CStringEx::ToWString(aggregatePath);
     if (!GetFUtil()->IsExistPath(pParam->m_strOutputDirPath))
     {
         return false;
@@ -108,19 +112,25 @@ JUDGESUITABLEPLACE_API bool SetOutputPath(char* aggregatePath)
     return true;
 }
 
-// 解析結果フォルダ
-JUDGESUITABLEPLACE_API bool SetBldgResultPath(char* analyzePath)
+// 解析結果のシステムデータフォルダ
+JUDGESUITABLEPLACE_API bool SetAnalyzeResultPath(char* analyzePath)
 {
     setlocale(LC_ALL, "");
 
     // 解析結果フォルダチェック
-    std::wstring path = CStringEx::ToWString(analyzePath);
-    pParam->m_strBldgResultPath = GetFUtil()->GetParentDir(path);   // output直下
-    if (!GetFUtil()->IsExistPath(pParam->m_strBldgResultPath))
+    std::filesystem::path path = std::filesystem::path(analyzePath);
+    pParam->m_strAnalyzeResultPath = path.wstring();
+    if (!GetFUtil()->IsExistPath(pParam->m_strAnalyzeResultPath))
     {
         return false;
     }
     return true;
+}
+
+JUDGESUITABLEPLACE_API void SetAggregateTarget(AggregateTarget* target)
+{
+    pParam->m_bExecBuild = target->bExecBuild;
+    pParam->m_bExecLand = target->bExecLand;
 }
 
 // 判定処理開始
@@ -148,17 +158,17 @@ JUDGESUITABLEPLACE_API int JadgeStart()
     if (pParam->m_pRestrictParam->strRestrictAreaPath_1.size() > 0)
     {
         app2[0].SetReadFilePath(pParam->m_pRestrictParam->strRestrictAreaPath_1);
-        bRet &= app2[0].ReadData();
+        bRet &= app2[0].ReadData(pParam->m_pRestrictParam->eDatum_1);
     }
     if (pParam->m_pRestrictParam->strRestrictAreaPath_2.size() > 0)
     {
         app2[1].SetReadFilePath(pParam->m_pRestrictParam->strRestrictAreaPath_2);
-        bRet &= app2[1].ReadData();
+        bRet &= app2[1].ReadData(pParam->m_pRestrictParam->eDatum_2);
     }
     if (pParam->m_pRestrictParam->strRestrictAreaPath_3.size() > 0)
     {
         app2[2].SetReadFilePath(pParam->m_pRestrictParam->strRestrictAreaPath_3);
-        bRet &= app2[2].ReadData();
+        bRet &= app2[2].ReadData(pParam->m_pRestrictParam->eDatum_3);
     }
 
     // 読み込み失敗

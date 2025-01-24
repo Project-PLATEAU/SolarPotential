@@ -130,7 +130,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\LIB\CommonUtil\lib\shapelib-1.5.0;$(SolutionDir)gdal-3.5.0\alg;$(SolutionDir)gdal-3.5.0\gcore;$(SolutionDir)gdal-3.5.0\ogr;$(SolutionDir)gdal-3.5.0\ogr\ogrsf_frmts;$(SolutionDir)gdal-3.5.0\port;$(SolutionDir)gdal-3.5.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <SupportJustMyCode>true</SupportJustMyCode>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -164,7 +164,7 @@ xcopy /d /y /r "$(ProjectDir)ColorSetting_JudgeSuitablePlace.txt" "$(OutDir)"</C
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\LIB\CommonUtil\lib\shapelib-1.5.0;$(SolutionDir)gdal-3.5.0\alg;$(SolutionDir)gdal-3.5.0\gcore;$(SolutionDir)gdal-3.5.0\ogr;$(SolutionDir)gdal-3.5.0\ogr\ogrsf_frmts;$(SolutionDir)gdal-3.5.0\port;$(SolutionDir)gdal-3.5.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <SupportJustMyCode>true</SupportJustMyCode>
@@ -176,7 +176,7 @@ xcopy /d /y /r "$(ProjectDir)ColorSetting_JudgeSuitablePlace.txt" "$(OutDir)"</C
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>shapelib_i.lib;Gdiplus.lib;AggregateData.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\LIB\CommonUtil\lib\shapelib-1.5.0;$(SolutionDir)\bin\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\LIB\CommonUtil\lib\shapelib-1.5.0;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y $(ProjectDir)..\..\LIB\CommonUtil\lib\shapelib-1.5.0\shapelib.dll $(OutDir)
@@ -187,8 +187,12 @@ xcopy /y/d $(ProjectDir)judge_suitable_place_priority.ini $(OutDir)</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
-    <None Include="extended_attribute.ini" />
-    <None Include="judge_suitable_place_priority.ini" />
+    <None Include="extended_attribute.ini">
+      <FileType>Text</FileType>
+    </None>
+    <None Include="judge_suitable_place_priority.ini">
+      <FileType>Text</FileType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AggregateData.h" />
@@ -202,6 +206,7 @@ xcopy /y/d $(ProjectDir)judge_suitable_place_priority.ini $(OutDir)</Command>
     <ClInclude Include="ImportRestrictAreaData.h" />
     <ClInclude Include="ResultJudgment.h" />
     <ClInclude Include="UIParam.h" />
+    <ClInclude Include="LandData.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BuildingData.cpp" />
@@ -211,6 +216,7 @@ xcopy /y/d $(ProjectDir)judge_suitable_place_priority.ini $(OutDir)</Command>
     <ClCompile Include="ImportWeatherData.cpp" />
     <ClCompile Include="JudgeSuitablePlace.cpp" />
     <ClCompile Include="JudgeSuitablePlaceMng.cpp" />
+    <ClCompile Include="LandData.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -220,9 +226,6 @@ xcopy /y/d $(ProjectDir)judge_suitable_place_priority.ini $(OutDir)</Command>
     <ClCompile Include="ResultJudgment.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\EXE\SolarPotential-CS\SolarPotential\AggregateData\AggregateData.vcxproj">
-      <Project>{c791bff6-dc89-4d39-96eb-71423cd4e9e8}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\LIB\CommonUtil\CommonUtil.vcxproj">
       <Project>{5a372e06-3c83-44f8-aeb9-144ede09f813}</Project>
     </ProjectReference>

@@ -1,0 +1,109 @@
+﻿<Page x:Class="SolarPotential.PageReflectionParams"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:SolarPotential"
+      mc:Ignorable="d">
+
+	<ScrollViewer x:Name="scrollViewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+		<Grid>
+			<Grid.RowDefinitions>
+				<RowDefinition/>
+				<RowDefinition/>
+				<RowDefinition/>
+			</Grid.RowDefinitions>
+			<Border Grid.Row="0" BorderBrush="Gray" BorderThickness="1" Margin="5">
+				<StackPanel x:Name="RoofParams" Margin="10">
+					<TextBlock FontSize="24" Text="屋根面の解析条件" Margin="10,5" FontWeight="Bold"/>
+					<Border BorderBrush="LightGray" BorderThickness="1"/>
+					<StackPanel x:Name="RoofModify">
+						<TextBlock FontSize="20" Text="太陽光パネル面の向き・傾きの補正" Margin="15,5" FontWeight="Bold"/>
+						<TextBlock FontSize="16" Text="屋根面の傾きによって、パネル設置面の傾きを屋根面と同値にするか、&#xa;指定した方位と傾きに補正するかを設定します。" Margin="20,5"/>
+						<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+							<TextBlock Text="(1) 屋根面の傾斜が3度未満" VerticalAlignment="Center" Margin="15, 5"/>
+							<RadioButton x:Name="RoofLowerRadio" GroupName="RoofLowerRadioGroup" Content="屋根面と同値" Margin="30, 0"/>
+							<StackPanel Margin="30, 5" Orientation="Horizontal">
+								<RadioButton x:Name="RoofLowerCustomRadio" Content="指定" GroupName="RoofLowerRadioGroup" VerticalAlignment="Center"/>
+								<StackPanel IsEnabled="{Binding ElementName=RoofLowerCustomRadio, Path=IsChecked}" Margin="20, 0" Orientation="Horizontal">
+									<TextBlock VerticalAlignment="Center">方位を</TextBlock>
+									<ComboBox x:Name="RoofLowerDirectionCombo" Width="100" Margin="10, 0" VerticalAlignment="Center"></ComboBox>
+									<TextBlock VerticalAlignment="Center">かつ 傾き</TextBlock>
+									<TextBox x:Name="RoofLowerDegree" Width="50" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+									<TextBlock VerticalAlignment="Center">度に補正する</TextBlock>
+								</StackPanel>
+							</StackPanel>
+						</StackPanel>
+						<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+							<TextBlock Text="(2) 屋根面の傾斜が3度以上" VerticalAlignment="Center" Margin="15, 5"/>
+							<RadioButton x:Name="RoofUpperRadio" GroupName="RoofUpperRadioGroup" Content="屋根面と同値" Margin="30, 0"/>
+							<StackPanel Margin="30, 5" Orientation="Horizontal">
+								<RadioButton x:Name="RoofUpperCustomRadio" Content="指定" GroupName="RoofUpperRadioGroup" VerticalAlignment="Center"/>
+								<StackPanel IsEnabled="{Binding ElementName=RoofUpperCustomRadio, Path=IsChecked}" Margin="20, 0" Orientation="Horizontal">
+									<TextBlock VerticalAlignment="Center">方位を</TextBlock>
+									<ComboBox x:Name="RoofUpperDirectionCombo" Width="100" Margin="10, 0" VerticalAlignment="Center"></ComboBox>
+									<TextBlock VerticalAlignment="Center">かつ 傾き</TextBlock>
+									<TextBox x:Name="RoofUpperDegree" Width="50" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+									<TextBlock VerticalAlignment="Center">度に補正する</TextBlock>
+								</StackPanel>
+							</StackPanel>
+						</StackPanel>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+			<Border Grid.Row="1" BorderBrush="Gray" BorderThickness="1" Margin="5">
+				<StackPanel x:Name="LandParams" Margin="10">
+					<TextBlock FontSize="24" Text="土地面の解析条件" Margin="10,5" FontWeight="Bold"/>
+					<Border BorderBrush="LightGray" BorderThickness="1"/>
+					<StackPanel x:Name="LandModify">
+						<TextBlock FontSize="20" Text="太陽光パネル面の向き・傾きの補正" Margin="15,5" FontWeight="Bold"/>
+						<TextBlock FontSize="16" Text="土地面の傾斜によって、パネル設置面の傾きを土地面と同値にするか、&#xa;指定した方位と傾きに補正するかを設定します。" Margin="20,5"/>
+						<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+							<TextBlock Text="(1) 土地面の傾斜が3度未満" VerticalAlignment="Center" Margin="15, 5"/>
+							<RadioButton x:Name="LandLowerRadio" GroupName="LandLowerRadioGroup" Content="土地面と同値" Margin="30, 0"/>
+							<StackPanel Margin="30, 5" Orientation="Horizontal">
+								<RadioButton x:Name="LandLowerCustomRadio" Content="指定" GroupName="LandLowerRadioGroup" VerticalAlignment="Center"/>
+								<StackPanel IsEnabled="{Binding ElementName=LandLowerCustomRadio, Path=IsChecked}" Margin="20, 0" Orientation="Horizontal">
+									<TextBlock VerticalAlignment="Center">方位を</TextBlock>
+									<ComboBox x:Name="LandLowerDirectionCombo" Width="100" Margin="10, 0" VerticalAlignment="Center"></ComboBox>
+									<TextBlock VerticalAlignment="Center">かつ 傾き</TextBlock>
+									<TextBox x:Name="LandLowerDegree" Width="50" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+									<TextBlock VerticalAlignment="Center">度に補正する</TextBlock>
+								</StackPanel>
+							</StackPanel>
+						</StackPanel>
+						<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+							<TextBlock VerticalAlignment="Center" Margin="15, 5">(2) 土地面の傾斜が3度以上</TextBlock>
+							<RadioButton x:Name="LandUpperRadio" GroupName="RadioGroupLandSlopeUpper" Content="土地面と同値" Margin="30, 0"/>
+							<StackPanel Margin="30, 5" Orientation="Horizontal">
+								<RadioButton x:Name="LandUpperCustomRadio" Content="指定" GroupName="RadioGroupLandSlopeUpper" VerticalAlignment="Center"/>
+								<StackPanel IsEnabled="{Binding IsChecked, ElementName=LandUpperCustomRadio}" Margin="20, 0" Orientation="Horizontal">
+									<TextBlock VerticalAlignment="Center">方位を</TextBlock>
+									<ComboBox x:Name="LandUpperDirectionCombo" Width="100" Margin="10, 0" VerticalAlignment="Center"></ComboBox>
+									<TextBlock VerticalAlignment="Center">かつ 傾き</TextBlock>
+									<TextBox x:Name="LandUpperDegree" Width="50" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+									<TextBlock VerticalAlignment="Center">度に補正する</TextBlock>
+								</StackPanel>
+							</StackPanel>
+						</StackPanel>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+			<Border Grid.Row="2" BorderBrush="Gray" BorderThickness="1" Margin="5">
+				<StackPanel x:Name="CommonParams" Margin="10">
+					<TextBlock FontSize="24" Text="その他の条件設定" Margin="10,5" FontWeight="Bold"/>
+					<Border BorderBrush="LightGray" BorderThickness="1"/>
+					<StackPanel>
+						<TextBlock FontSize="20" Text="反射有効範囲" Margin="15,5" FontWeight="Bold"/>
+						<TextBlock FontSize="16" Text="反射光が到達する最大距離を設定します。" Margin="20,5"/>
+						<StackPanel HorizontalAlignment="Left" Margin="20, 5" Orientation="Horizontal">
+							<TextBox x:Name="ReflectionRange" Width="100" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+							<TextBlock VerticalAlignment="Center">m</TextBlock>
+						</StackPanel>
+					</StackPanel>
+					<Image Source="/SolarPotential;component/Resources/reflection_range.png"/>
+				</StackPanel>
+			</Border>
+		</Grid>
+	</ScrollViewer>
+</Page>

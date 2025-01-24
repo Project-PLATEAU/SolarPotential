@@ -1,0 +1,98 @@
+﻿<Window x:Class="SolarPotential.ReadParamWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SolarPotential"
+        mc:Ignorable="d"
+        Title="SolarPotential" MinWidth="500" MinHeight="600" Height="650" Width="550">
+
+	<ScrollViewer x:Name="scrollViewer" VerticalScrollBarVisibility="Auto">
+		<Grid Margin="10">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="100"/>
+				<RowDefinition/>
+				<RowDefinition Height="50"/>
+			</Grid.RowDefinitions>
+			<StackPanel Grid.Row="0" Margin="0, 5">
+				<TextBlock FontSize="16" Text="パラメータファイルの読み込み方法を選択します。" FontWeight="Bold"/>
+				<RadioButton x:Name="SelectFileRadio" GroupName="ReadTypeRadioGroup" Content="ファイルを指定して読み込む" IsChecked="True" VerticalAlignment="Center" Margin="0, 5"/>
+				<StackPanel Margin="10, 5" Orientation="Horizontal" IsEnabled="{Binding ElementName=SelectFileRadio, Path=IsChecked}">
+					<TextBox x:Name="ParamFilePath" Width="350" BorderBrush="#000000" BorderThickness="2" Margin="5, 0"/>
+					<Button Click="SelectParamFileButton_Click" Width="70" Content="選択" VerticalAlignment="Top"/>
+				</StackPanel>
+			</StackPanel>
+			<StackPanel Grid.Row="1" Margin="0, 5">
+				<RadioButton x:Name="HistoryRadio" GroupName="ReadTypeRadioGroup" Content="実行履歴から読み込むパラメータを選択" VerticalAlignment="Center" IsEnabled="False"/>
+				<StackPanel IsEnabled="{Binding ElementName=HistoryRadio, Path=IsChecked}">
+					<Expander Header="絞り込み条件" HorizontalAlignment="Right" Margin="10, 5">
+						<StackPanel Margin="10, 5">
+							<GroupBox x:Name="SortAnalyzeTarget" Header="解析条件">
+								<StackPanel Margin="10, 5">
+									<StackPanel Orientation="Horizontal" Margin="5">
+										<CheckBox x:Name="CheckBuild" Content="建物"/>
+										<CheckBox x:Name="CheckLand" Content="土地" Margin="20, 0"/>
+									</StackPanel>
+									<StackPanel Orientation="Horizontal" Margin="5">
+										<CheckBox x:Name="CheckPotential" Content="日射・発電量推計"/>
+										<CheckBox x:Name="CheckReflection" Content="反射シミュレーション" Margin="20, 0"/>
+									</StackPanel>
+								</StackPanel>
+							</GroupBox>
+							<GroupBox x:Name="SortDate" Header="実行日時">
+								<StackPanel Margin="10, 5">
+									<StackPanel Margin="5" Orientation="Horizontal">
+										<TextBlock Text="開始" VerticalAlignment="Center"/>
+										<DatePicker x:Name="StartDate" Width="100" Margin="10, 0"/>
+										<CheckBox x:Name="CheckStartTime" Content="時間指定" VerticalAlignment="Center" Margin="5,0,0,0"/>
+										<StackPanel IsEnabled="{Binding ElementName=CheckStartTime, Path=IsChecked}" Orientation="Horizontal">
+											<TextBox x:Name="TextBoxStartHour" Text="00" Width="50" Margin="10,0,0,0" />
+											<TextBlock Text=":" Margin="5"/>
+											<TextBox x:Name="TextBoxStartMinute" Text="00" Width="50"/>
+										</StackPanel>
+									</StackPanel>
+									<StackPanel Margin="5" Orientation="Horizontal">
+										<TextBlock Text="終了" VerticalAlignment="Center"/>
+										<DatePicker x:Name="EndDate" Width="100" Margin="10, 0"/>
+										<CheckBox x:Name="CheckEndTime" Content="時間指定" IsChecked="False" VerticalAlignment="Center" Margin="5,0,0,0"/>
+										<StackPanel IsEnabled="{Binding ElementName=CheckEndTime, Path=IsChecked}" Orientation="Horizontal">
+											<TextBox x:Name="TextBoxEndHour" Text="23" Width="50" Margin="10,0,0,0"/>
+											<TextBlock Text=":" Margin="5"/>
+											<TextBox x:Name="TextBoxEndMinute" Text="59" Width="50"/>
+										</StackPanel>
+									</StackPanel>
+								</StackPanel>
+							</GroupBox>
+						</StackPanel>
+					</Expander>
+					<ListView x:Name="ListParamHistory" ItemsSource="{Binding Mode=OneWay}" MinWidth="200" Width="Auto" Height="300" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" BorderBrush="LightGray" BorderThickness="1">
+						<ListView.View>
+							<GridView AllowsColumnReorder="True">
+								<GridViewColumn DisplayMemberBinding="{Binding Path=DateStr}" Header="実行日時" Width="130"/>
+								<GridViewColumn DisplayMemberBinding="{Binding Path=Potential}" Header="発電量" Width="50"/>
+								<GridViewColumn DisplayMemberBinding="{Binding Path=Reflection}" Header="反射" Width="50"/>
+								<GridViewColumn DisplayMemberBinding="{Binding Path=Build}" Header="建物" Width="50"/>
+								<GridViewColumn DisplayMemberBinding="{Binding Path=Land}" Header="土地" Width="50"/>
+								<GridViewColumn Header="説明" Width="150">
+									<GridViewColumn.CellTemplate>
+										<DataTemplate>
+											<TextBox Text="{Binding Path=Explanation, Mode=TwoWay}" Width="130"/>
+										</DataTemplate>
+									</GridViewColumn.CellTemplate>
+								</GridViewColumn>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<StackPanel Margin="5" Orientation="Horizontal">
+						<Button Content="削除" Click="DelateButton_Click" Width="70"/>
+						<Button Content="全削除" Click="AllDelateButton_Click" Width="70" Margin="10, 0"/>
+					</StackPanel>
+				</StackPanel>
+			</StackPanel>
+			<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+				<Button x:Name="ReadButton" Content="読み込み" Width="100" Margin="10,5" Click="ReadButton_Click" IsEnabled="False" />
+				<Button Content="キャンセル" Width="100" Margin="10,5" Click="BackButton_Click" />
+			</StackPanel>
+		</Grid>
+	</ScrollViewer>
+</Window>

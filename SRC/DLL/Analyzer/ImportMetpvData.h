@@ -2,7 +2,7 @@
 #include "DataImport.h"
 #include "../../LIB/CommonUtil/CTime.h"
 
-// Œ–ˆ‚Ì“Ü“V‚Ì“úË—Ê
+// Ïá[
 
 class CImportMetpvData : public CDataImport
 {

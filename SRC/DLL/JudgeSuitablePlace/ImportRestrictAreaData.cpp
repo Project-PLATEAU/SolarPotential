@@ -33,7 +33,7 @@ void CImportRestrictAreaData::Initialize()
 		m_aryRestrictAreaData.clear();
 	}
 }
-bool CImportRestrictAreaData::ReadData()
+bool CImportRestrictAreaData::ReadData(eDatum datum)
 {
 	if (!GetFUtil()->IsExistPath(m_strFilePath))
 	{
@@ -93,7 +93,19 @@ bool CImportRestrictAreaData::ReadData()
 			for (int jc = 0; jc < psElem->nVertices; jc++)
 			{
 				// 変換した座標の追加
-				CPointBase pt(psElem->padfX[jc], psElem->padfY[jc], psElem->padfZ[jc]);
+				CPointBase pt;
+				if (datum == eDatum::LATLON)
+				{
+					// 緯度経度 -> 平面直角座標
+					int JPZONE = GetINIParam()->GetJPZone();
+					double x, y;
+					CGeoUtil().LonLatToXY(psElem->padfX[jc], psElem->padfY[jc], JPZONE, x, y);
+					pt = CPointBase(x, y, psElem->padfZ[jc]);
+				}
+				else
+				{
+					pt = CPointBase(psElem->padfX[jc], psElem->padfY[jc], psElem->padfZ[jc]);
+				}
 				pRestrictArea->vecPolyline.push_back(pt);
 			}
 
@@ -140,6 +152,36 @@ bool CImportRestrictAreaData::IsBuildingInRestrictArea(const std::vector<ROOFSUR
 					if (bRet) return true;
 				}
 			}
+		}
+	}
+
+	return false;
+}
+
+// 制限区域内外判定
+bool CImportRestrictAreaData::IsLandInRestrictArea(const std::vector<CPoint2D> pSurface)
+{
+	// 制限区域数
+	size_t iAreaNum = m_aryRestrictAreaData.size();
+
+	// 制限区域ごとに判定
+	for (RestrictArea* pRestrictArea : m_aryRestrictAreaData)
+	{
+		std::vector<CPoint2D> restrictArea;
+		for (int i = 0; i < pRestrictArea->vecPolyline.size(); i++)
+		{
+			CPointBase pos = pRestrictArea->vecPolyline.at(i);
+			restrictArea.push_back(CPoint2D(pos.x, pos.y));
+		}
+
+		// 座標ごとに判定
+		for (const auto& pos : pSurface)
+		{
+			CPoint2D target2d(pos.x, pos.y);
+			// 内外判定
+			bool bRet = CGeoUtil::IsPointInPolygon(target2d, (int)restrictArea.size(), restrictArea.data());
+			// 制限区域内にある
+			if (bRet) return true;
 		}
 	}
 

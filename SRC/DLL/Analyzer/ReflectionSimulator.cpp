@@ -17,18 +17,18 @@
 using namespace std;
 
 
-CReflectionSimulator::CReflectionSimulator(const CTime& date, UIParam* pUIParam)
+CReflectionSimulator::CReflectionSimulator(const CTime& date, CUIParam* pUIParam)
 	: m_date(date)
 	, m_pParam(pUIParam)
-	, m_bExec(false)
+	, m_bExec(eExitCode::Normal)
 	, m_buildingIndex(0)
 {
 	Init();
 
 	if (pUIParam)
 	{
-		m_roofCorrectLower = pUIParam->_reflectRoofCorrect_Lower;
-		m_roofCorrectUpper = pUIParam->_reflectRoofCorrect_Upper;
+		m_roofCorrectLower = *pUIParam->pReflectionParam->pRoof_Lower;
+		m_roofCorrectUpper = *pUIParam->pReflectionParam->pRoof_Upper;
 	}
 }
 
@@ -51,9 +51,8 @@ void CReflectionSimulator::SetSunVector(double lat, double lon)
 }
 
 // 反射シミュレーション解析を実行する
-bool CReflectionSimulator::Exec(
-	const vector<BLDGLIST>& targetBuildings,
-	const vector<BLDGLIST>& buildings
+eExitCode CReflectionSimulator::Exec(
+	const vector<AREADATA>& analyzeAreas
 )
 {
 	assert(m_pParam);
@@ -64,24 +63,76 @@ bool CReflectionSimulator::Exec(
 	for (uint8_t hour = 0; hour < 24; ++hour)
 	{
 		CAnalysisReflection result;
-		if (AnalyzeBuildings(targetBuildings, buildings, hour, result))
-		{
-			// 建物IDの順番を結果に設定する
-			SetBuildingIndex(result);
+		bool ret = true;
 
-			// 結果を時間ごとの配列に保持
-			SetResult(hour, result);
+		for (const auto& area : analyzeAreas)
+		{
+			vector<BLDGLIST> buildings{};
+
+			// エリア内の建物データ取得
+			buildings = *(reinterpret_cast<vector<BLDGLIST>*>(GetAreaBuildList(area)));
+
+			if (area.analyzeBuild)
+			{
+				vector<BLDGLIST> targetBuildings{};
+
+				// 解析対象の建物リストを作成
+				for (const auto& bldList : buildings)
+				{
+					if (area.targetBuildings.find(bldList.meshID) == area.targetBuildings.end())	continue;
+
+					BLDGLIST tmpBldList = bldList;
+					tmpBldList.buildingList.clear();
+
+					const auto tmpBuildings = area.targetBuildings.at(bldList.meshID);
+					for (auto bld : tmpBuildings)
+					{
+						tmpBldList.buildingList.emplace_back(*bld);
+					}
+					//tmpBldList.buildingList.insert(tmpBldList.buildingList.end(), *tmpBuildings.begin(), *tmpBuildings.end());
+
+					targetBuildings.emplace_back(tmpBldList);
+				}
+
+				ret &= AnalyzeBuildings(targetBuildings, buildings, hour, result);
+			}
+
+			// キャンセル
+			if (IsCancel())
+			{
+				m_bExec = eExitCode::Cancel;
+				return m_bExec;
+			}
+
+			if (area.analyzeLand)
+			{
+				ret &= AnalyzeLand(area, buildings, hour, result);
+			}
+
+			// キャンセル
+			if (IsCancel())
+			{
+				m_bExec = eExitCode::Cancel;
+				return m_bExec;
+			}
+
 		}
+
+		// 解析したIDの順番を結果に設定する
+		SetBuildingIndex(result);
+
+		// 結果を時間ごとの配列に保持
+		SetResult(hour, result);
 
 		// キャンセル
 		if (IsCancel())
 		{
-			m_bExec = false;
+			m_bExec = eExitCode::Cancel;
 			return m_bExec;
 		}
 	}
 
-	m_bExec = true;
+	m_bExec = eExitCode::Normal;
 	return m_bExec;
 }
 
@@ -94,7 +145,7 @@ bool CReflectionSimulator::OutResult(const std::string& csvfile) const
 		return false;
 
 	// ヘッダー部
-	ofs << "建物ID,屋根面ID,ｼﾐｭﾚｰｼｮﾝ日時,\
+	ofs << "建物/土地ID,屋根面ID,ｼﾐｭﾚｰｼｮﾝ日時,\
 反射点座標.X(ｍ),反射点座標.Y(ｍ),反射点座標.Z(ｍ),\
 反射先座標.X(ｍ),反射先座標.Y(ｍ),反射先座標.Z(ｍ),\
 反射先" << endl;
@@ -167,7 +218,7 @@ bool CReflectionSimulator::OutResultCZML(
 		rgba = "169,208,142,204";
 	else if (czmlfilename == "winter")
 		rgba = "91,155,213,204";
-	else // 入ること無いけどとりあえず設定
+	else // 指定日
 		rgba = "128,128,128,204";
 
 	// 座標系番号を取得
@@ -237,9 +288,9 @@ bool CReflectionSimulator::ConvertResultCSVtoCZML(
 		resultReflectionMesh.reflectionTarget.targetPos.x = x2;
 		resultReflectionMesh.reflectionTarget.targetPos.y = y2;
 		resultReflectionMesh.reflectionTarget.targetPos.z = z2;
-		resultReflection.push_back(resultReflectionMesh);
+		resultReflection.emplace_back(resultReflectionMesh);
 	}
-	result.push_back(resultReflection);
+	result.emplace_back(resultReflection);
 
 	// CZMLファイル出力
 	return OutResultCZML(czmlfile, result);
@@ -423,7 +474,7 @@ bool CReflectionSimulator::ReadResultCSVLines(
 	// 2行目以降のデータ部
 	while (getline(ifs, line))
 	{
-		lines.push_back(line);
+		lines.emplace_back(line);
 	}
 
 	ifs.close();
@@ -438,7 +489,7 @@ const CAnalysisReflectionOneDay& CReflectionSimulator::GetResult() const
 }
 
 // Exec()実行結果
-bool CReflectionSimulator::GetExecResult() const
+eExitCode CReflectionSimulator::GetExecResult() const
 {
 	return m_bExec;
 }
@@ -563,12 +614,12 @@ bool CReflectionSimulator::AnalyzeRoof(
 	for (const auto& mesh : roof.meshPosList)
 	{
 		CAnalysisReflectionMesh resultMesh;
-		bool res = AnalyzeMesh(mesh, posList, building, buildings, sunVector, resultMesh);
+		bool res = AnalyzeMesh(mesh, posList, /*building,*/ buildings, sunVector, resultMesh);
 		if (res)
 		{
 			resultMesh.reflectionRoof.buildingId = building.building;
 			resultMesh.reflectionRoof.roofSurfaceId = roof.roofSurfaceId;
-			result.push_back(resultMesh);
+			result.emplace_back(resultMesh);
 			ret = true;
 		}
 
@@ -586,7 +637,7 @@ bool CReflectionSimulator::AnalyzeRoof(
 bool CReflectionSimulator::AnalyzeMesh(
 	const MESHPOSITION_XY& mesh,
 	const vector<CPointBase>& posList,
-	const BUILDINGS& building,
+	//const BUILDINGS& building,
 	const vector<BLDGLIST>& buildings,
 	const CVector3D& sunVector,
 	CAnalysisReflectionMesh& result
@@ -609,7 +660,7 @@ bool CReflectionSimulator::AnalyzeMesh(
 		for (int i = 1; i < posList.size(); ++i)
 		{
 			CVector3D vec(posList[i], posList[0]);
-			vecPolyList.push_back(vec);
+			vecPolyList.emplace_back(vec);
 		}
 		sort(
 			vecPolyList.begin(),
@@ -656,9 +707,9 @@ bool CReflectionSimulator::AnalyzeMesh(
 	{
 		// 傾斜角を求める
 		double degree = acos(CGeoUtil::InnerProduct(CGeoUtil::Normalize(n), CVector3D(0.0, 0.0, 1.0))) * _COEF_RAD_TO_DEG;
-		CReflectionRoofCorrect* pRoofCorrect = (degree < 3.0) ? &m_roofCorrectLower : &m_roofCorrectUpper;
+		CReflectionCorrect* pRoofCorrect = (degree < 3.0) ? &m_roofCorrectLower : &m_roofCorrectUpper;
 		// meshを傾斜させる
-		if (pRoofCorrect->bSpecify)
+		if (pRoofCorrect->bCustom)
 		{
 			for (auto& meshPos : meshXYZ)
 			{
@@ -699,12 +750,78 @@ bool CReflectionSimulator::AnalyzeMesh(
 		
 	}
 
-	CReflectionSimulatorMesh reflectionSimMesh;
-	bool bResult = reflectionSimMesh.Exec(sunVector, meshXYZ, building, buildings);
+	CReflectionSimulatorMesh reflectionSimMesh(m_pParam);
+	bool bResult = reflectionSimMesh.Exec(sunVector, meshXYZ, /*building,*/ buildings);
 	if (bResult)
 		result = reflectionSimMesh.GetResult();
 
 	return bResult;
+}
+
+// 土地面での解析
+bool CReflectionSimulator::AnalyzeLand(
+	const AREADATA& targetArea,
+	const std::vector<BLDGLIST>& buildings,
+	uint8_t hour,
+	CAnalysisReflection& result
+)
+{
+	bool ret = false;	// 解析結果がないときfalse
+
+	double lat, lon;
+	int JPZONE = GetINIParam()->GetJPZone();
+	CGeoUtil().XYToLatLon(JPZONE, targetArea.bbMinY, targetArea.bbMinX, lat, lon);
+
+	HorizontalCoordinate sunPos;
+	SetSunVector(lat, lon);
+	m_pSunVector->GetPos(hour, sunPos);
+
+	// 高度が0以上の場合のみ反射シミュレーション解析を行う
+	if (sunPos.altitude >= 0)
+	{
+		// 入射光のベクトル
+		CVector3D sunVector;
+		m_pSunVector->GetVector(hour, sunVector);
+
+		// 対象メッシュの隣接するメッシュを取得
+		vector<BLDGLIST> neighborBuildings;
+		GetNeighborBuildings(targetArea, buildings, neighborBuildings);
+
+		// エリアIDの処理を記録する
+		m_buildingIndex++;		// 暫定：建物と一緒に保持する
+		if (m_mapBuildingIndex.find(targetArea.areaID) == m_mapBuildingIndex.end())
+			m_mapBuildingIndex[targetArea.areaID] = m_buildingIndex;
+
+		// 有効な土地面全体の座標リストを作成
+		vector<CPointBase> posList = {};
+		for (const auto& polygon : targetArea.landSurface.landSurfaceList)
+		{
+			posList.insert(posList.end(), polygon.posList.begin(), polygon.posList.end());
+		}
+
+		// 1土地メッシュの反射解析
+		for (const auto& mesh : targetArea.landSurface.meshPosList)
+		{
+			CAnalysisReflectionMesh resultMesh;
+			bool res = AnalyzeMesh(mesh, posList, buildings, sunVector, resultMesh);
+			if (res)
+			{
+				resultMesh.reflectionRoof.buildingId = targetArea.areaID;		// エリアID
+				resultMesh.reflectionRoof.roofSurfaceId = "";					// 空欄
+				result.emplace_back(resultMesh);
+				ret = true;
+			}
+
+			// キャンセル
+			if (IsCancel())
+			{
+				return false;
+			}
+		}
+
+	}
+
+	return ret;
 }
 
 // 対象メッシュの隣接するメッシュを取得
@@ -737,7 +854,43 @@ void CReflectionSimulator::GetNeighborBuildings(
 		// DIST以内の距離のとき近隣とする
 		if ((dist - targetR - buildR) <= DIST)
 		{
-			neighborBuildings.push_back(building);
+			neighborBuildings.emplace_back(building);
+			continue;
+		}
+	}
+}
+
+// 対象メッシュの隣接するメッシュを取得
+void CReflectionSimulator::GetNeighborBuildings(
+	const AREADATA& targetArea,
+	const std::vector<BLDGLIST>& buildings,
+	std::vector<BLDGLIST>& neighborBuildings
+)
+{
+	const double DIST = GetINIParam()->GetNeighborBuildDist_Reflection();	// 隣接するBBoxの範囲[m]
+
+	// targetLandの中心
+	double targetCenterX = ((int64_t)targetArea.bbMaxX + targetArea.bbMinX) * 0.5;
+	double targetCenterY = ((int64_t)targetArea.bbMaxY + targetArea.bbMinY) * 0.5;
+	// 外接円半径
+	double targetR = sqrt((targetCenterX - targetArea.bbMaxX) * (targetCenterX - targetArea.bbMaxX) +
+		(targetCenterY - targetArea.bbMaxY) * (targetCenterY - targetArea.bbMaxY));
+
+	for (const auto& building : buildings)
+	{
+		// 範囲内にあるか
+		// buldingの中心
+		double buildCenterX = ((int64_t)building.bbMaxX + building.bbMinX) * 0.5;
+		double buildCenterY = ((int64_t)building.bbMaxY + building.bbMinY) * 0.5;
+		// 外接円半径
+		double buildR = sqrt((buildCenterX - building.bbMaxX) * (buildCenterX - building.bbMaxX) +
+			(buildCenterY - building.bbMaxY) * (buildCenterY - building.bbMaxY));
+		// 中心同士の距離
+		double dist = sqrt((buildCenterX - targetCenterX) * (buildCenterX - targetCenterX) + (buildCenterY - targetCenterY) * (buildCenterY - targetCenterY));
+		// DIST以内の距離のとき近隣とする
+		if ((dist - targetR - buildR) <= DIST)
+		{
+			neighborBuildings.emplace_back(building);
 			continue;
 		}
 	}
@@ -750,7 +903,7 @@ bool CReflectionSimulator::IsCancel()
 
 	// キャンセルファイルのディレクトリパス
 	filesystem::path filepath = m_pParam->strOutputDirPath;
-	filepath = filepath.parent_path();
+	filepath = filepath.parent_path().parent_path();
 
 	// キャンセルファイルのパス
 	filepath /= CANCELFILE;

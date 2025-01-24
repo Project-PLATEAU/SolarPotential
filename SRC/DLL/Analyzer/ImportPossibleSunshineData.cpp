@@ -29,50 +29,62 @@ bool CImportPossibleSunshineData::ReadData()
 
 	setlocale(LC_ALL, "");
 
-	CFileIO fio;
-	if (fio.Open(m_strFilePath, L"rt"))
+	try
 	{
-		std::wstring strLine;
-		int lineCnt = 0;
-		wchar_t cBuff[1024];
-
-		while (fio.ReadLineW(cBuff, 1024) != NULL)
+		CFileIO fio;
+		if (fio.Open(m_strFilePath, L"rt"))
 		{
-			strLine = cBuff;
-			if (lineCnt == 1)
+			std::wstring strLine;
+			int lineCnt = 0;
+			wchar_t cBuff[1024];
+
+			while (fio.ReadLineW(cBuff, 1024) != NULL)
 			{
-				// 緯度:XX° 経度:XX° 標高: 0.0 m 標準時:UT+9h
-				std::vector<std::wstring> aryData;
-				GetFUtil()->SplitCSVData(strLine, &aryData, ' ');
-				std::wstring strLat = aryData[0];
-				strLat = strLat.substr(3);
-				strLat.pop_back();
-				m_dLat = stof(strLat);
-				std::wstring strLon = aryData[1];
-				strLon = strLon.substr(3);
-				strLon.pop_back();
-				m_dLon = stof(strLon);
+				strLine = cBuff;
+				if (lineCnt == 1)
+				{
+					// 緯度:XX° 経度:XX° 標高: 0.0 m 標準時:UT+9h
+					std::vector<std::wstring> aryData;
+					GetFUtil()->SplitCSVData(strLine, &aryData, ' ');
+					std::wstring strLat = aryData[0];
+					strLat = strLat.substr(3);
+					strLat.pop_back();
+					m_dLat = stof(strLat);
+					std::wstring strLon = aryData[1];
+					strLon = strLon.substr(3);
+					strLon.pop_back();
+					m_dLon = stof(strLon);
+				}
+				else if (lineCnt != 0 && lineCnt != 2)
+				{	// 4行目以降
+					std::vector<std::wstring> aryData;
+					GetFUtil()->SplitCSVData(strLine, &aryData, ',');
+
+					CSunshineData tmpData;
+
+					std::string strDate = CStringEx::ToString(aryData[0]);
+					tmpData.m_SunriseTime.SetDateTime(strDate, CStringEx::ToString(aryData[1]));
+					tmpData.m_dSunriseAngle = stof(aryData[2]);
+					tmpData.m_MeridianTransit.SetDateTime(strDate, CStringEx::ToString(aryData[3]));
+					tmpData.m_dMeridianAltitude = stof(aryData[4]);
+					tmpData.m_SunsetTime.SetDateTime(strDate, CStringEx::ToString(aryData[5]));
+					tmpData.m_dSunsetAngle = stof(aryData[6]);
+
+					m_vecSunshineData.push_back(tmpData);
+				}
+				lineCnt++;
 			}
-			else if (lineCnt != 0 && lineCnt != 2)
-			{	// 4行目以降
-				std::vector<std::wstring> aryData;
-				GetFUtil()->SplitCSVData(strLine, &aryData, ',');
-
-				CSunshineData tmpData;
-
-				std::string strDate = CStringEx::ToString(aryData[0]);
-				tmpData.m_SunriseTime.SetDateTime(strDate, CStringEx::ToString(aryData[1]));
-				tmpData.m_dSunriseAngle = stof(aryData[2]);
-				tmpData.m_MeridianTransit.SetDateTime(strDate, CStringEx::ToString(aryData[3]));
-				tmpData.m_dMeridianAltitude = stof(aryData[4]);
-				tmpData.m_SunsetTime.SetDateTime(strDate, CStringEx::ToString(aryData[5]));
-				tmpData.m_dSunsetAngle = stof(aryData[6]);
-
-				m_vecSunshineData.push_back(tmpData);
+			fio.Close();
+			// 空ファイルの場合(読み込めたライン数＝０)は異常終了にする。
+			if (lineCnt == 0)
+			{
+				return false;
 			}
-			lineCnt++;
 		}
-		fio.Close();
+	}
+	catch (...)
+	{
+		return false;
 	}
 
 	if (m_vecSunshineData.size() > 0)	bRet = true;

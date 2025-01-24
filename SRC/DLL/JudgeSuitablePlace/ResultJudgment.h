@@ -2,6 +2,15 @@
 #include <string>
 #include <vector>
 
+// 対象
+enum class eTarget
+{
+	TARGET_NONE = 0,		// 不明(エラー)
+	TARGET_BUILD = 1,		// 建物
+	TARGET_LAND = 2,		// 土地
+};
+
+
 // 建築構造の種類
 enum class ePriority
 {
@@ -15,6 +24,8 @@ enum class ePriority
 
 struct ResultJudgment
 {
+	// エリアID
+	std::string m_strAreaId;
 	// メッシュID
 	int m_iMeshId;
 	// 建物ID
@@ -36,7 +47,8 @@ struct ResultJudgment
 
 	// コンストラクタ
 	ResultJudgment()
-		: m_iMeshId(0)
+		: m_strAreaId("")
+		, m_iMeshId(0)
 		, m_strBuildingId("")
 		, m_ePriority(ePriority::PRIORITY_RANK_5)
 		, m_strSuitable1_1_1("-")
@@ -80,8 +92,12 @@ public:
 	// 判定結果CSV出力
 	bool OutputResultCSV(const std::wstring& filepath);
 
+	// 対象を設定する
+	void SetTarget(eTarget target) { m_eTarget = target; };
+
 private:
 	std::vector<ResultJudgment> m_result;
+	eTarget m_eTarget;
 
 };
 

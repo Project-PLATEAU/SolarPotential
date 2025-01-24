@@ -103,7 +103,7 @@ bool CImageUtil::CreateLegendImage(
 	}
 	int colNum = static_cast<int>(colorAry.size());
 
-	INT imgWidth = 120;
+	INT imgWidth = 140;
 	INT imgHeight = colNum * 20 + 30;
 
 	GdiplusStartupInput input;
@@ -143,14 +143,14 @@ bool CImageUtil::CreateLegendImage(
 		// ƒwƒbƒ_•”•ª‚ð•`‰æ
 		graphics.DrawString(strHeader.c_str(), -1, &font, PointF(3.0f, 3.0f), &textBrush);
 
-		REAL drawPosX = 50.0f;
+		REAL drawPosX = 70.0f;
 		REAL drawPosY = 30.0f;
 
 		// –}—á•”•ª‚ð•`‰æ
 		for (int ic = colNum - 1; ic >= 0; --ic)
 		{
 			// ’l
-			std::wstring strVal = CStringEx::Format( L"%.f", colorAry[ic].maxH);
+			std::wstring strVal = CStringEx::Format( L"%.1f", colorAry[ic].maxH);
 			graphics.DrawString(strVal.c_str(), -1, &font, PointF(10.0f, drawPosY + 3.0f), &textBrush);
 
 			int iR = 255;

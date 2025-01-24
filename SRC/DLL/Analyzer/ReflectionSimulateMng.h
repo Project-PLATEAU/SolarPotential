@@ -4,6 +4,7 @@
 #include <string>
 #include "ReflectionSimulator.h"
 #include "UIParam.h"
+#include "../../LIB/CommonUtil/ExitCode.h"
 
 class CResultKeyData;
 
@@ -16,7 +17,9 @@ public:
 		, m_pParam(nullptr)
 	{}
 
-	void Exec(const std::string& outDir, UIParam* pUIParam, int year);
+	bool Exec(const std::string& outDir, CUIParam* pUIParam, int year);
+
+	eExitCode GetExitCode() { return m_eExitCode; };
 
 private:
 	// 光害時間
@@ -25,6 +28,7 @@ private:
 		int summer{ 0 };	// 夏至
 		int spring{ 0 };	// 春分
 		int winter{ 0 };	// 冬至
+		int oneday{ 0 };	// 指定日
 	};
 
 	// 解析結果格納先
@@ -32,7 +36,10 @@ private:
 	// 解析年
 	int m_year;
 	// 設定パラメータ
-	UIParam* m_pParam;
+	CUIParam* m_pParam;
+
+	// 終了コード
+	eExitCode m_eExitCode;
 
 	bool ReflectionSim(std::vector<CAnalysisReflectionOneDay>& result);
 
@@ -41,8 +48,8 @@ private:
 	bool OutReflectionEffect(const std::string csvfile,
 		const std::map<CResultKeyData, ReflectionEffectTime>& effectResult);
 
-	// 建物名からメッシュIDを取得
-	bool GetMeshID(const std::string& buildingID, std::string& meshID) const;
+	// 建物名からエリアID, メッシュIDを取得
+	bool GetIDs(const std::string& buildingID, std::string& areaID, std::string& meshID) const;
 
 };
 

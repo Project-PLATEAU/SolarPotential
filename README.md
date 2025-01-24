@@ -1,4 +1,4 @@
-# FY2022 Project PLATEAU UC22-013「カーボンニュートラル施策推進支援システムの開発」の成果物
+# 「カーボンニュートラル施策推進支援システムの開発」の成果物
 ### SolarPotential
 ![概要](./img/tutorial_001.png)
 

@@ -3,6 +3,7 @@
 #include "CFileUtil.h"
 #include "CFileIO.h"
 #include "StringEx.h"
+#include "ReadINIParam.h"
 #include <windows.h>
 #include <gdiplus.h>
 #include <locale.h>
@@ -209,7 +210,8 @@ CTiffCreator::CreateWldFile
 	file.WriteLineW(strLine);
 
 	// ë™ínånÇÃÉRÉÅÉìÉg
-	strLine = CStringEx::Format(L"#%dån", 7);
+	int JPZONE = GetINIParam()->GetJPZone();
+	strLine = CStringEx::Format(L"#%dån", JPZONE);
 	file.WriteLineW(strLine);
 
 	file.Close();
