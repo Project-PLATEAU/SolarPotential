@@ -364,18 +364,16 @@ bool CReflectionSimulateMng::GetIDs(const string& buildingID, string& areaID, st
 	for (const auto& area : *allList)
 	{
 		// エリア内の建物データ取得
-		vector<BLDGLIST>* allBuildList = reinterpret_cast<vector<BLDGLIST>*>(GetAreaBuildList(area));
-
-		for (const auto& bldList : *allBuildList)
+		for (const auto& bldList : area.neighborBldgList)
 		{
 			// 建物リストを取得
-			for (const auto& building : bldList.buildingList)
+			for (const auto& building : bldList->buildingList)
 			{
 				if (building.building == buildingID)
 				{
 					ret = true;
 					areaID = area.areaID;
-					meshID = bldList.meshID;
+					meshID = bldList->meshID;
 					break;
 				}
 			}

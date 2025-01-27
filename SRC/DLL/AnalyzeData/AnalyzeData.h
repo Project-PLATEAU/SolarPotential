@@ -472,20 +472,6 @@ void* __cdecl GetAllAreaList()
     return (void*)(&allAreaList);
 }
 
-// 建物リストを取得
-std::vector<BLDGLIST> allBuildList{};
-void* __cdecl GetAllBuildList()
-{
-    return (void*)(&allBuildList);
-}
-
-// 土地リストを取得
-std::vector<DEMMEMBERS> allDemList{};
-void* __cdecl GetAllDemList()
-{
-    return (void*)(&allDemList);
-}
-
 // 道路リストを取得
 std::vector<TRANLIST> allTranList{};
 void* __cdecl GetAllTranList()
@@ -506,6 +492,3 @@ public:
 	~AnalyzeData(void);
 
 };
-
-VC_DLL_EXPORTS void* __cdecl GetAreaBuildList(const AREADATA& area);
-VC_DLL_EXPORTS void* __cdecl GetAreaDemList(const AREADATA& area);

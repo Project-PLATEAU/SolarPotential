@@ -26,8 +26,6 @@ public:
 	// 反射光が建物にあたっている解析結果があるときtrueを返す
 	eExitCode Exec(
 		const vector<AREADATA>& analyzeAreas);			// 解析エリア
-		//const std::vector<BLDGLIST>& targetBuildings,	// 反射解析する建物
-		//const std::vector<BLDGLIST>& buildings);		// 反射先解析する建物
 
 	// 結果をCSVファイルに出力する
 	// 結果はExec()を実施後のtrueが返ったときに格納されたデータを出力する
@@ -85,7 +83,7 @@ private:
 	// 全建物での解析
 	bool AnalyzeBuildings(
 		const std::vector<BLDGLIST>& targetBuildings,
-		const std::vector<BLDGLIST>& buildings,
+		const std::vector<BLDGLIST*>& buildings,
 		uint8_t hour,
 		CAnalysisReflection& result);
 
@@ -106,9 +104,7 @@ private:
 	// 1屋根メッシュでの解析
 	bool AnalyzeMesh(
 		const MESHPOSITION_XY& mesh,
-		//const SURFACEMEMBERS& polygon,
 		const vector<CPointBase>& posList,
-		//const BUILDINGS& building,
 		const std::vector<BLDGLIST>& buildings,
 		const CVector3D& sunVector,
 		CAnalysisReflectionMesh& result);
@@ -116,29 +112,20 @@ private:
 	// 土地での解析
 	bool AnalyzeLand(
 		const AREADATA& targetArea,
-		const std::vector<BLDGLIST>& buildings,
+		const std::vector<BLDGLIST*>& buildings,
 		uint8_t hour,
 		CAnalysisReflection& result);
-
-	//// 1土地メッシュでの解析
-	//bool AnalyzeLandMesh(
-	//	const MESHPOSITION_XY& mesh,
-	//	const vector<CPointBase>& posList,
-	//	//const BUILDINGS& building,
-	//	const std::vector<BLDGLIST>& buildings,
-	//	const CVector3D& sunVector,
-	//	CAnalysisReflectionMesh& result);
 
 	// 対象メッシュの隣接するメッシュを取得
 	void GetNeighborBuildings(
 		const BLDGLIST& targetBuildings,			// 対象メッシュ
-		const std::vector<BLDGLIST>& buildings,		// 全メッシュ
+		const std::vector<BLDGLIST*>& buildings,	// 全メッシュ
 		std::vector<BLDGLIST>& neighborBuildings);	// 近隣メッシュ
 
 	// 対象メッシュの隣接するメッシュを取得(土地面)
 	void GetNeighborBuildings(
 		const AREADATA& targetArea,
-		const std::vector<BLDGLIST>& buildings,
+		const std::vector<BLDGLIST*>& buildings,
 		std::vector<BLDGLIST>& neighborBuildings);
 
 	// キャンセル中かどうか

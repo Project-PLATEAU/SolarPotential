@@ -115,24 +115,6 @@ void CCalcSolarPotentialMng::finalize()
 		delete m_pmapResultData;
 		m_pmapResultData = NULL;
 	}
-
-	if (m_targetArea.m_pvecAllBuildList)
-	{
-		m_targetArea.m_pvecAllBuildList->clear();
-		m_targetArea.m_pvecAllBuildList->shrink_to_fit();
-#if _DEBUG
-		std::cout << "BuildList Capacity: " << m_targetArea.m_pvecAllBuildList->capacity() << std::endl;
-#endif
-	}
-
-	if (m_targetArea.m_pvecAllDemList)
-	{
-		m_targetArea.m_pvecAllDemList->clear();
-		m_targetArea.m_pvecAllDemList->shrink_to_fit();
-#if _DEBUG
-		std::cout << "DemList Capacity: " << m_targetArea.m_pvecAllDemList->capacity() << std::endl;
-#endif
-	}
 }
 
 
@@ -170,13 +152,12 @@ bool CCalcSolarPotentialMng::AnalyzeSolarPotential()
 	calcMonthlyRate();
 
 	int dataCount = (int)m_pvecAllAreaList->size();
-	for (const auto& areaData : *m_pvecAllAreaList)
+	for (auto& areaData : *m_pvecAllAreaList)
 	{
 		if (IsCancel())	break;
 
-		// 範囲ごとのデータを保持しておく
-		m_targetArea.m_pvecAllBuildList = reinterpret_cast<std::vector<BLDGLIST>*>(GetAreaBuildList(areaData));
-		m_targetArea.m_pvecAllDemList = reinterpret_cast<std::vector<DEMMEMBERS>*>(GetAreaDemList(areaData));
+		// 処理中エリア
+		m_targetArea = &areaData;
 
 		CResultData dataMap;
 
@@ -1255,11 +1236,11 @@ bool CCalcSolarPotentialMng::outputAreaBuildResult(const AREADATA& areaData)
 			// 建物リストを取得
 			BLDGLIST bldList{};  // 格納用
 
-			for (const auto& bldli : *m_targetArea.m_pvecAllBuildList)
+			for (const auto& bldli : m_targetArea->neighborBldgList)
 			{
-				if (Lv3meshId == bldli.meshID)
+				if (Lv3meshId == bldli->meshID)
 				{
-					bldList = bldli;
+					bldList = *bldli;
 					break;
 				}
 			}
@@ -1495,7 +1476,7 @@ bool CCalcSolarPotentialMng::createPointData_Build(
 			}
 		}
 
-		int surfaceCount = build.roofSurfaceList.size();
+		int surfaceCount = (int)build.roofSurfaceList.size();
 		for (int kc = 0; kc < surfaceCount; kc++)
 		{
 			ROOFSURFACES surface = build.roofSurfaceList[kc];
@@ -2448,7 +2429,7 @@ bool CCalcSolarPotentialMng::outputLandShape()
 		if (!landData)	continue;
 
 		// ポリゴン作成
-		int nVertices = areaData.pos2dList.size();
+		int nVertices = (int)areaData.pos2dList.size();
 		double* pX = new double[nVertices];
 		double* pY = new double[nVertices];
 		double* pZ = new double[nVertices];
@@ -2473,7 +2454,7 @@ bool CCalcSolarPotentialMng::outputLandShape()
 		DBFWriteStringAttribute(hDBF, iRecord, 0, areaData.areaID.c_str());
 		DBFWriteStringAttribute(hDBF, iRecord, 1, areaData.areaName.c_str());
 		DBFWriteDoubleAttribute(hDBF, iRecord, 2, landData->GetAllArea());
-		DBFWriteIntegerAttribute(hDBF, iRecord, 3, landData->panelArea);
+		DBFWriteIntegerAttribute(hDBF, iRecord, 3, (int)landData->panelArea);
 		DBFWriteDoubleAttribute(hDBF, iRecord, 4, landData->solarRadiationTotal);
 		DBFWriteDoubleAttribute(hDBF, iRecord, 5, landData->solarRadiationUnit);
 		DBFWriteDoubleAttribute(hDBF, iRecord, 6, landData->solarPower);
@@ -2721,15 +2702,15 @@ void CCalcSolarPotentialMng::GetNeighborBuildings(
 	// 建物中心XY
 	CVector2D CenterXY(center.x, center.y);
 
-	for (const auto& bldList : *m_targetArea.m_pvecAllBuildList)
+	for (const auto& bldList : m_targetArea->neighborBldgList)
 	{
-		BLDGLIST tmpBldList = bldList;
+		BLDGLIST tmpBldList = *bldList;
 		tmpBldList.buildingList.clear();
 		tmpBldList.buildingListLOD1.clear();
 
 		// 範囲内にあるか
 		// LOD2
-		for (const auto& build : bldList.buildingList)
+		for (const auto& build : bldList->buildingList)
 		{
 			double bbBldMinX = DBL_MAX, bbBldMinY = DBL_MAX;
 			double bbBldMaxX = -DBL_MAX, bbBldMaxY = -DBL_MAX;
@@ -2766,7 +2747,7 @@ void CCalcSolarPotentialMng::GetNeighborBuildings(
 		}
 
 		// LOD1
-		for (const auto& build : bldList.buildingListLOD1)
+		for (const auto& build : bldList->buildingListLOD1)
 		{
 			double bbBldMinX = DBL_MAX, bbBldMinY = DBL_MAX;
 			double bbBldMaxX = -DBL_MAX, bbBldMaxY = -DBL_MAX;
@@ -2824,9 +2805,9 @@ void CCalcSolarPotentialMng::GetNeighborDems(
 	// 除外するDEM高さ
 	double demHeight = target == eAnalyzeTarget::ROOF ? GetINIParam()->GetDemHeight_Build() : GetINIParam()->GetDemHeight_Land();
 
-	for (const auto& member : *m_targetArea.m_pvecAllDemList)
+	for (const auto& member : m_targetArea->neighborDemList)
 	{
-		for (const auto& triangle : member.posTriangleList)
+		for (const auto& triangle : member->posTriangleList)
 		{
 			// XY平面の重心を求める
 			double x = (triangle.posTriangle[0].x + triangle.posTriangle[1].x + triangle.posTriangle[2].x) / 3.0;

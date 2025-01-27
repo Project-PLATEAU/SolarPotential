@@ -117,7 +117,6 @@ private:
 	void calcMonthlyRate();
 
 	// エリアごとの出力処理
-	//bool outputAreaResult(const AREADATA& areaData);
 	bool outputAreaBuildResult(const AREADATA& areaData);
 	bool outputAreaLandResult(const AREADATA& areaData);
 
@@ -183,9 +182,6 @@ private:
 		const std::vector<CVector3D>& surfaceBB		// 対象面のBB
 	);
 
-	// 3次メッシュが隣接(周囲8方向)しているか
-	//bool isNeighborMesh(const std::string& meshId1, const std::string& meshId2);
-
 	// 色設定ファイルパスを取得
 	std::wstring getColorSettingFileName(const eOutputImageTarget& eTarget);
 
@@ -207,15 +203,7 @@ private:
 	CUIParam* m_pUIParam;
 
 	std::vector<AREADATA>*		m_pvecAllAreaList;		// 解析エリア情報(建物、土地データ)
-
-	// エリアごとの処理で使用
-	struct TargetArea
-	{
-		std::vector<BLDGLIST>*		m_pvecAllBuildList;		// 建物リストデータ
-		std::vector<DEMMEMBERS>*	m_pvecAllDemList;		// DEMリストデータ
-	};
-
-	TargetArea					m_targetArea;			// 処理中エリアデータ
+	AREADATA*					m_targetArea;			// 処理中エリアデータ
 
 	CAnalysisRadiationCommon*	m_pRadiationData;		// 共通の計算パラメータ
 	CResultDataMap*				m_pmapResultData;		// 計算結果データマップ

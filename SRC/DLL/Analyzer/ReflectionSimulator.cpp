@@ -67,24 +67,19 @@ eExitCode CReflectionSimulator::Exec(
 
 		for (const auto& area : analyzeAreas)
 		{
-			vector<BLDGLIST> buildings{};
-
-			// エリア内の建物データ取得
-			buildings = *(reinterpret_cast<vector<BLDGLIST>*>(GetAreaBuildList(area)));
-
 			if (area.analyzeBuild)
 			{
-				vector<BLDGLIST> targetBuildings{};
+				vector<BLDGLIST> targetBuildings{};	// 反射解析する建物
 
-				// 解析対象の建物リストを作成
-				for (const auto& bldList : buildings)
+				// 解析対象の建物リストをメッシュごとに作成
+				for (const auto& bldList : area.neighborBldgList)
 				{
-					if (area.targetBuildings.find(bldList.meshID) == area.targetBuildings.end())	continue;
+					if (area.targetBuildings.find(bldList->meshID) == area.targetBuildings.end())	continue;
 
-					BLDGLIST tmpBldList = bldList;
+					BLDGLIST tmpBldList = *bldList;
 					tmpBldList.buildingList.clear();
 
-					const auto tmpBuildings = area.targetBuildings.at(bldList.meshID);
+					const auto tmpBuildings = area.targetBuildings.at(bldList->meshID);
 					for (auto bld : tmpBuildings)
 					{
 						tmpBldList.buildingList.emplace_back(*bld);
@@ -94,7 +89,7 @@ eExitCode CReflectionSimulator::Exec(
 					targetBuildings.emplace_back(tmpBldList);
 				}
 
-				ret &= AnalyzeBuildings(targetBuildings, buildings, hour, result);
+				ret &= AnalyzeBuildings(targetBuildings, area.neighborBldgList, hour, result);
 			}
 
 			// キャンセル
@@ -106,7 +101,7 @@ eExitCode CReflectionSimulator::Exec(
 
 			if (area.analyzeLand)
 			{
-				ret &= AnalyzeLand(area, buildings, hour, result);
+				ret &= AnalyzeLand(area, area.neighborBldgList, hour, result);
 			}
 
 			// キャンセル
@@ -519,7 +514,7 @@ void CReflectionSimulator::SetResult(uint8_t hour, const CAnalysisReflection& re
 // 全建物での解析
 bool CReflectionSimulator::AnalyzeBuildings(
 	const std::vector<BLDGLIST>& targetBuildings,
-	const std::vector<BLDGLIST>& buildings,
+	const std::vector<BLDGLIST*>& buildings,
 	uint8_t hour,
 	CAnalysisReflection& result
 )
@@ -761,7 +756,7 @@ bool CReflectionSimulator::AnalyzeMesh(
 // 土地面での解析
 bool CReflectionSimulator::AnalyzeLand(
 	const AREADATA& targetArea,
-	const std::vector<BLDGLIST>& buildings,
+	const std::vector<BLDGLIST*>& buildings,
 	uint8_t hour,
 	CAnalysisReflection& result
 )
@@ -803,7 +798,7 @@ bool CReflectionSimulator::AnalyzeLand(
 		for (const auto& mesh : targetArea.landSurface.meshPosList)
 		{
 			CAnalysisReflectionMesh resultMesh;
-			bool res = AnalyzeMesh(mesh, posList, buildings, sunVector, resultMesh);
+			bool res = AnalyzeMesh(mesh, posList, neighborBuildings, sunVector, resultMesh);
 			if (res)
 			{
 				resultMesh.reflectionRoof.buildingId = targetArea.areaID;		// エリアID
@@ -827,7 +822,7 @@ bool CReflectionSimulator::AnalyzeLand(
 // 対象メッシュの隣接するメッシュを取得
 void CReflectionSimulator::GetNeighborBuildings(
 	const BLDGLIST& targetBuildings,
-	const std::vector<BLDGLIST>& buildings,
+	const std::vector<BLDGLIST*>& buildings,
 	std::vector<BLDGLIST>& neighborBuildings
 )
 {
@@ -844,17 +839,17 @@ void CReflectionSimulator::GetNeighborBuildings(
 	{
 		// 範囲内にあるか
 		// buldingの中心
-		double buildCenterX = ((int64_t)building.bbMaxX + building.bbMinX) * 0.5;
-		double buildCenterY = ((int64_t)building.bbMaxY + building.bbMinY) * 0.5;
+		double buildCenterX = ((int64_t)building->bbMaxX + building->bbMinX) * 0.5;
+		double buildCenterY = ((int64_t)building->bbMaxY + building->bbMinY) * 0.5;
 		// 外接円半径
-		double buildR = sqrt((buildCenterX - building.bbMaxX) * (buildCenterX - building.bbMaxX) +
-			(buildCenterY - building.bbMaxY) * (buildCenterY - building.bbMaxY));
+		double buildR = sqrt((buildCenterX - building->bbMaxX) * (buildCenterX - building->bbMaxX) +
+			(buildCenterY - building->bbMaxY) * (buildCenterY - building->bbMaxY));
 		// 中心同士の距離
 		double dist = sqrt((buildCenterX - targetCenterX) * (buildCenterX - targetCenterX) + (buildCenterY - targetCenterY) * (buildCenterY - targetCenterY));
 		// DIST以内の距離のとき近隣とする
 		if ((dist - targetR - buildR) <= DIST)
 		{
-			neighborBuildings.emplace_back(building);
+			neighborBuildings.emplace_back(*building);
 			continue;
 		}
 	}
@@ -863,7 +858,7 @@ void CReflectionSimulator::GetNeighborBuildings(
 // 対象メッシュの隣接するメッシュを取得
 void CReflectionSimulator::GetNeighborBuildings(
 	const AREADATA& targetArea,
-	const std::vector<BLDGLIST>& buildings,
+	const std::vector<BLDGLIST*>& buildings,
 	std::vector<BLDGLIST>& neighborBuildings
 )
 {
@@ -880,17 +875,17 @@ void CReflectionSimulator::GetNeighborBuildings(
 	{
 		// 範囲内にあるか
 		// buldingの中心
-		double buildCenterX = ((int64_t)building.bbMaxX + building.bbMinX) * 0.5;
-		double buildCenterY = ((int64_t)building.bbMaxY + building.bbMinY) * 0.5;
+		double buildCenterX = ((int64_t)building->bbMaxX + building->bbMinX) * 0.5;
+		double buildCenterY = ((int64_t)building->bbMaxY + building->bbMinY) * 0.5;
 		// 外接円半径
-		double buildR = sqrt((buildCenterX - building.bbMaxX) * (buildCenterX - building.bbMaxX) +
-			(buildCenterY - building.bbMaxY) * (buildCenterY - building.bbMaxY));
+		double buildR = sqrt((buildCenterX - building->bbMaxX) * (buildCenterX - building->bbMaxX) +
+			(buildCenterY - building->bbMaxY) * (buildCenterY - building->bbMaxY));
 		// 中心同士の距離
 		double dist = sqrt((buildCenterX - targetCenterX) * (buildCenterX - targetCenterX) + (buildCenterY - targetCenterY) * (buildCenterY - targetCenterY));
 		// DIST以内の距離のとき近隣とする
 		if ((dist - targetR - buildR) <= DIST)
 		{
-			neighborBuildings.emplace_back(building);
+			neighborBuildings.emplace_back(*building);
 			continue;
 		}
 	}

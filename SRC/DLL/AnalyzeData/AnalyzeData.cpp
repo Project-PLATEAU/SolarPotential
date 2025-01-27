@@ -140,16 +140,6 @@ void __cdecl DllDispose()
         allAreaList.clear();
         allAreaList.shrink_to_fit();
     }
-    if (allBuildList.size() > 0)
-    {
-        allBuildList.clear();
-        allBuildList.shrink_to_fit();
-    }
-    if (allDemList.size() > 0)
-    {
-        allDemList.clear();
-        allDemList.shrink_to_fit();
-    }
     if (allTranList.size() > 0)
     {
         allTranList.clear();
@@ -2722,30 +2712,6 @@ void __cdecl AddAnalyzeAreaData(AnalyzeAreaData* p)
     allAreaList.emplace_back(areaData);
 }
 
-void* __cdecl GetAreaBuildList(const AREADATA& area)
-{
-    allBuildList.clear();
-
-    for (auto& bldg : area.neighborBldgList)
-    {
-        allBuildList.emplace_back(*bldg);
-    }
-
-    return (void*)(&allBuildList);
-};
-
-void* __cdecl GetAreaDemList(const AREADATA& area)
-{
-    allDemList.clear();
-
-    for (auto& dem : area.neighborDemList)
-    {
-        allDemList.emplace_back(*dem);
-    }
-
-    return (void*)(&allDemList);
-};
-
 int __cdecl AnalizeBldgFiles(const char* str, const char* strOut, const bool analyzeInterior)
 {
 
@@ -2761,7 +2727,7 @@ int __cdecl AnalizeBldgFiles(const char* str, const char* strOut, const bool ana
 
     std::vector<std::string> fileName;
 
-    allBuildList.clear();
+    //allBuildList.clear();
 
     // キャンセルファイルパス
     std::filesystem::path path = std::filesystem::path(strOut).parent_path() / CANCELFILE;
@@ -2932,8 +2898,6 @@ int __cdecl AnalizeDemFiles(const char* str, const char* strOut, const bool useD
     }
 
     std::vector<std::string> fileName;
-
-    allDemList.clear();
 
     // キャンセルファイルパス
     std::filesystem::path path = std::filesystem::path(strOut).parent_path() / CANCELFILE;
@@ -3922,14 +3886,11 @@ int __cdecl LOD2DataOut(const char* str, const char* strOut)
     // 公害発生時間（春分、夏至、冬至、指定日）のCSV内容を配列に取得
     vector<vector<string>> lightpollutionList = csv2vector(csvFile1, 1);
 
-    for (const auto& area : allAreaList)
+    for (auto& area : allAreaList)
     {
         // エリアごとフォルダ名を取得
         std::string areaDirName = CStringEx::Format("%s_%s", area.areaID.c_str(), area.areaName.c_str());
         if (area.areaName == "")	areaDirName.pop_back();	// 名称が無い場合は末尾の"_"を削除
-
-        // エリア内の建物データを取得
-        GetAreaBuildList(area);
 
         // 全体リスト
         vector<LOD2OUTLIST> outputList{};
@@ -4080,15 +4041,15 @@ int __cdecl LOD2DataOut(const char* str, const char* strOut)
         // 初回メッシュIDで検索
         std::size_t allIndex;
         std::vector<BUILDINGS> wBuildingList{};  // 格納用
-        auto allfi = std::find_if(allBuildList.begin(), allBuildList.end(),
+        auto allfi = std::find_if(area.neighborBldgList.begin(), area.neighborBldgList.end(),
             [&](const auto& row) {
-                return((row.meshID == outputList[0].meshID));
+                return((row->meshID == outputList[0].meshID));
             });
         // 存在する場合、建物リストをセット
-        if (allfi != allBuildList.end()) {
+        if (allfi != area.neighborBldgList.end()) {
             // 存在する場合は登録済みの配列に値をセット
-            allIndex = std::distance(std::begin(allBuildList), allfi);
-            wBuildingList = allBuildList[allIndex].buildingList;
+            allIndex = std::distance(std::begin(area.neighborBldgList), allfi);
+            wBuildingList = area.neighborBldgList[allIndex]->buildingList;
         }
 
         // jpgファイルサイズ取得
@@ -4203,15 +4164,15 @@ int __cdecl LOD2DataOut(const char* str, const char* strOut)
                 reader->load(CComVariant(oWString.c_str()), &isSuccessful);
 
                 wBuildingList.clear();  // 格納用
-                auto allfi = std::find_if(allBuildList.begin(), allBuildList.end(),
+                auto allfi = std::find_if(area.neighborBldgList.begin(), area.neighborBldgList.end(),
                     [&](const auto& row) {
-                        return((row.meshID == outputList[i].meshID));
+                        return((row->meshID == outputList[i].meshID));
                     });
                 // 存在する場合、建物リストをセット
-                if (allfi != allBuildList.end()) {
+                if (allfi != area.neighborBldgList.end()) {
                     // 存在する場合は登録済みの配列に値をセット
-                    allIndex = std::distance(std::begin(allBuildList), allfi);
-                    wBuildingList = allBuildList[allIndex].buildingList;
+                    allIndex = std::distance(std::begin(area.neighborBldgList), allfi);
+                    wBuildingList = area.neighborBldgList[allIndex]->buildingList;
                 }
 
                 // jpgファイルサイズ取得

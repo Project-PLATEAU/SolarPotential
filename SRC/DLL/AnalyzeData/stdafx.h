@@ -55,5 +55,3 @@ VC_DLL_EXPORTS void __cdecl DllDispose();
 VC_DLL_EXPORTS void __cdecl OutputCoordinatesFile(const char* strOut);
 
 VC_DLL_EXPORTS void* __cdecl GetAllAreaList();
-VC_DLL_EXPORTS void* __cdecl GetAllBuildList();
-VC_DLL_EXPORTS void* __cdecl GetAllDemList();

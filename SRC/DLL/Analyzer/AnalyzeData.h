@@ -258,10 +258,3 @@ enum struct lightPollution
 // vector<AREADATA>‚ðŽæ“¾‚·‚é
 extern "C" __declspec(dllimport) void* __cdecl GetAllAreaList();
 
-// vector<BLDGLIST>‚ðŽæ“¾‚·‚é
-//extern "C" __declspec(dllimport) void* __cdecl GetAllBuildList();
-extern "C" __declspec(dllimport) void* __cdecl GetAreaBuildList(const AREADATA& area);
-
-// DEMƒŠƒXƒg‚ðŽæ“¾
-//extern "C" __declspec(dllimport) void* __cdecl GetAllDemList();
-extern "C" __declspec(dllimport) void* __cdecl GetAreaDemList(const AREADATA& area);
