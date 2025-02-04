@@ -202,16 +202,11 @@ public:
 	bool					bExecBuild;					// 建物シミュレーション実行フラグ
 	bool					bExecLand;					// 土地シミュレーション実行フラグ
 
-	//std::vector<eDateType>	dateTypes;					// 解析対象期間
 	eDateType				eAnalyzeDate;				// 解析期間
 	int						nMonth;						// 指定月
 	int						nDay;						// 指定日
-	//CTime					dateStart;					// 解析対象期間(開始日)
-	//CTime					dateEnd;					// 解析対象期間(終了日)
 
 	CInputData*				pInputData;					// 入力データ
-	//CAreaDataArray*			pvecAreaData;				// 解析エリアデータ
-	int						nAreaExRange;				// 解析エリア拡張範囲
 
 	CSolarPotentialParam*	pSolarPotentialParam;		// 発電ポテンシャル推計条件
 	CReflectionParam*		pReflectionParam;			// 反射シミュレーション条件
@@ -221,10 +216,7 @@ public:
 	CUIParam()
 		: bExecSolarPotantial(false), bExecReflection(false), bExecBuild(false), bExecLand(false)
 		, eAnalyzeDate(eDateType::OneMonth), nMonth(0), nDay(0)
-		//, dateStart(), dateEnd()
 		, pInputData(NULL)
-		//, pvecAreaData(NULL)
-		, nAreaExRange(0)
 		, strOutputDirPath(L"")
 	{
 
@@ -232,11 +224,6 @@ public:
 	~CUIParam()
 	{
 		delete pInputData;
-		//if (!pvecAreaData)
-		//{
-		//	pvecAreaData->clear();
-		//}
-		//delete pvecAreaData;
 		delete pSolarPotentialParam;
 		delete pReflectionParam;
 	};

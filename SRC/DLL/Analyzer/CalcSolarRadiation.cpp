@@ -381,48 +381,6 @@ inline double CCalcSolarRadiation::calcAngleIn(double sunAngle, double surfaceAn
 	return sin(sunAngle) * cos(surfaceAngle) + cos(sunAngle) * sin(surfaceAngle) * cos(alpha - surfaceAz);
 }
 
-// 法線面直達日射量(W/m2)
-//inline double CCalcSolarRadiation::calcDirectNormal(double sunAngle, double pdif)
-//{
-//	double m = 1 / sin(sunAngle);
-//	double betaM = pow(pdif, m);
-//	return def_Sconst * betaM;
-//}
-
-// 水平面天空日射量(W/m2)
-//inline double CCalcSolarRadiation::calcSkyHorizon(double sunAngle, double pdif)
-//{
-//	double m = 1 / sin(sunAngle);
-//	double betaM = pow(pdif, m);
-//	double dN = 1.0 - betaM;
-//	double dD = 1.0 - 1.4 * log(pdif);
-//	return def_Sconst * sin(sunAngle) * (dN / dD) * 0.5;
-//}
-
-// 斜面直達日射量
-//inline double CCalcSolarRadiation::calcDirectSlope(double dDN, double angIn)
-//{
-//	return dDN * angIn;
-//}
-
-// 斜面天空日射量
-//inline double CCalcSolarRadiation::calcSkySlope(double dSH, double surfaceAngle)
-//{
-//	return dSH * (1 + cos(surfaceAngle)) * 0.5;
-//}
-
-// 水平面全天日射量
-//inline double CCalcSolarRadiation::calcSolarHorizon(double dDN, double dSH, double sunAngle)
-//{
-//	return dDN * sin(sunAngle) + dSH;
-//}
-
-//// 斜面に入射する反射日射量
-//inline double CCalcSolarRadiation::calcRefrectSlope(double dTH, double surfaceAngle, double refRate)
-//{
-//	return dTH * (1 - cos(surfaceAngle)) * 0.5 * refRate;
-//}
-
 // 年間日射量
 bool CCalcSolarRadiation::CalcAreaSolarRadiation(CPotentialData& result)
 {

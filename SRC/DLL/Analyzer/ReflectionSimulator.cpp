@@ -84,7 +84,6 @@ eExitCode CReflectionSimulator::Exec(
 					{
 						tmpBldList.buildingList.emplace_back(*bld);
 					}
-					//tmpBldList.buildingList.insert(tmpBldList.buildingList.end(), *tmpBuildings.begin(), *tmpBuildings.end());
 
 					targetBuildings.emplace_back(tmpBldList);
 				}

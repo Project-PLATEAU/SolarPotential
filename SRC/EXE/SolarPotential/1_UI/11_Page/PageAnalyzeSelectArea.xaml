@@ -123,7 +123,7 @@
 					</ListView>
 				</StackPanel>
 			</StackPanel>
-			<StackPanel Grid.Row="2">
+			<StackPanel Grid.Row="2" Visibility="Collapsed">
 				<TextBlock FontSize="20" Text="出力設定" Margin="15,20,15,10" FontWeight="Bold"/>
 				<TextBlock FontSize="16" Text="画像出力時、指定した距離で周囲を拡張して出力します。" Margin="20,5"/>
 				<StackPanel HorizontalAlignment="Left" Margin="20, 5" Orientation="Horizontal">

@@ -19,12 +19,10 @@ CReflectionSimulatorMesh::~CReflectionSimulatorMesh()
 bool CReflectionSimulatorMesh::Exec(
 	const CVector3D& inputVec,
 	const vector<CVector3D>& roofMesh,
-	//const BUILDINGS& building,
 	const std::vector<BLDGLIST>& buildingsList
 )
 {
 	// 光線の有効距離
-	//const double LIGHT_LENGTH = GetINIParam()->GetNeighborBuildDist_Reflection();
 	const double LIGHT_LENGTH = m_pParam->pReflectionParam->dReflectionRange;
 
 	// 屋根メッシュの座標
