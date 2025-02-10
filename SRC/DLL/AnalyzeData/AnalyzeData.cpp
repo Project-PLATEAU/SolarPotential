@@ -1813,8 +1813,6 @@ void GetDemNode(wstring xmldata, string& cancelPath, bool useDem)
     VARIANT_BOOL isSuccessful;
     reader->load(CComVariant(xmldata.c_str()), &isSuccessful);
 
-    DEMLIST demList{};
-
     BSTR xp2 = SysAllocString(XPATH2);
     MSXML2::IXMLDOMNodeListPtr demMemberList = NULL;
     reader->selectNodes(xp2, &demMemberList);
@@ -1902,10 +1900,20 @@ void GetDemNode(wstring xmldata, string& cancelPath, bool useDem)
             // 土地解析対象外＆DEMを使用しない場合はスキップ
             if (!area.analyzeLand && !useDem)   continue;
 
-            if (area.areaID == "A000" || IsMeshNeighborArea(area.pos2dList, pt1.x, pt1.y, pt2.x, pt2.y))
+            if (area.areaID == "A000")
             {
                 tmpTargetAreas.emplace_back(&area);
-                break;
+            }
+            else
+            {
+                for (auto& poly : area.areaPolygons)
+                {
+                    if (IsMeshNeighborArea(poly, pt1.x, pt1.y, pt2.x, pt2.y))
+                    {
+                        tmpTargetAreas.emplace_back(&area);
+                        break;
+                    }
+                }
             }
         }
         if (tmpTargetAreas.size() == 0)
@@ -2044,8 +2052,6 @@ void GetDemNode(wstring xmldata, string& cancelPath, bool useDem)
         demMember->posTriangleList = allDemTriangleList;
         demMember->bbMinX = bbMinX; demMember->bbMinY = bbMinY;
         demMember->bbMaxX = bbMaxX; demMember->bbMaxY = bbMaxY;
-
-        demList.demMemberList.emplace_back(*demMember);
 
         for (auto& area : tmpTargetAreas)
         {
@@ -2332,29 +2338,6 @@ void GetLandMatrix(AREADATA& area, vector<CTriangle>& areaTin, cv::Mat& result, 
     int height = (int)std::ceil(area.bbMaxY - area.bbMinY);
     cv::Mat areaImage = cv::Mat::zeros(height, width, CV_8UC1);
 
-    // エリア範囲を凸多角形に分割する
-    vector<CPoint2DPolygon> aryPolygons;
-    CPoint2DPolygon areaPolygon;
-    for (const auto& p : area.pos2dList)
-    {
-        CPoint2D pt2d = CPoint2D(p.x, p.y);
-        areaPolygon.Add(pt2d);
-    }
-    // 左側を始点にする
-    areaPolygon.StartLeft();
-
-    // 凸多角形
-    if (areaPolygon.IsConvexPolygon())
-    {
-        aryPolygons.emplace_back(areaPolygon);
-    }
-    // 凹多角形
-    else
-    {
-        // 凸多角形に分割する
-        areaPolygon.GetConvexPolygons(aryPolygons);
-    }
-
     // 範囲に重なる三角形を取得
     for (const auto& demMember : area.neighborDemList)
     {
@@ -2366,7 +2349,7 @@ void GetLandMatrix(AREADATA& area, vector<CTriangle>& areaTin, cv::Mat& result, 
             {(double)demMember->bbMaxX, (double)demMember->bbMaxY},
             {(double)demMember->bbMaxX, (double)demMember->bbMinY}
         };
-        for (auto& poly : aryPolygons)
+        for (auto& poly : area.areaPolygons)
         {
             CPoint2DPolygon tempPolygon;
             if (IsPolygonInArea(demMeshXY, poly, tempPolygon))
@@ -2388,7 +2371,7 @@ void GetLandMatrix(AREADATA& area, vector<CTriangle>& areaTin, cv::Mat& result, 
             }
 
             // 三角形の内外判定
-            for (auto& poly : aryPolygons)
+            for (auto& poly : area.areaPolygons)
             {
                 CPoint2DPolygon crsPolygon;
                 if (IsPolygonInArea(poly, tin2dList, crsPolygon))
@@ -2437,7 +2420,7 @@ void GetLandMatrix(AREADATA& area, vector<CTriangle>& areaTin, cv::Mat& result, 
             {(double)build->bbMaxX, (double)build->bbMaxY},
             {(double)build->bbMaxX, (double)build->bbMinY}
         };
-        for (auto& poly : aryPolygons)
+        for (auto& poly : area.areaPolygons)
         {
             CPoint2DPolygon tempPolygon;
             if (IsPolygonInArea(MeshXY, poly, tempPolygon))
@@ -2480,7 +2463,7 @@ void GetLandMatrix(AREADATA& area, vector<CTriangle>& areaTin, cv::Mat& result, 
                     }
 
                     // LOD2建物の内外判定
-                    for (auto& areaPoly : aryPolygons)
+                    for (auto& areaPoly : area.areaPolygons)
                     {
                         for (auto& poly : polygons)
                         {
@@ -2538,7 +2521,7 @@ void GetLandMatrix(AREADATA& area, vector<CTriangle>& areaTin, cv::Mat& result, 
                     }
 
                     // LOD1建物の内外判定
-                    for (auto& areaPoly : aryPolygons)
+                    for (auto& areaPoly : area.areaPolygons)
                     {
                         for (auto& poly : polygons)
                         {
@@ -2603,7 +2586,7 @@ void GetLandMatrix(AREADATA& area, vector<CTriangle>& areaTin, cv::Mat& result, 
                         }
 
                         // 道路の内外判定
-                        for (auto& areaPoly : aryPolygons)
+                        for (auto& areaPoly : area.areaPolygons)
                         {
                             for (auto& poly : polygons)
                             {
@@ -2709,6 +2692,30 @@ void __cdecl AddAnalyzeAreaData(AnalyzeAreaData* p)
         if (pos.y > areaData.bbMaxY)	areaData.bbMaxY = pos.y;
     }
 
+    // エリア範囲を凸多角形に分割する
+    vector<CPoint2DPolygon> aryPolygons;
+    CPoint2DPolygon areaPolygon;
+    for (const auto& p : areaPoints)
+    {
+        CPoint2D pt2d = CPoint2D(p.x, p.y);
+        areaPolygon.Add(pt2d);
+    }
+    // 左側を始点にする
+    areaPolygon.StartLeft();
+
+    // 凸多角形
+    if (areaPolygon.IsConvexPolygon())
+    {
+        aryPolygons.emplace_back(areaPolygon);
+    }
+    // 凹多角形
+    else
+    {
+        // 凸多角形に分割する
+        areaPolygon.GetConvexPolygons(aryPolygons);
+    }
+    areaData.areaPolygons = aryPolygons;
+
     allAreaList.emplace_back(areaData);
 }
 
@@ -2767,10 +2774,20 @@ int __cdecl AnalizeBldgFiles(const char* str, const char* strOut, const bool ana
             for (auto& area : allAreaList)
             {
                 // 解析範囲の周辺メッシュかどうか
-                if (area.areaID == "A000" || 
-                    IsMeshNeighborArea(area.pos2dList, wbldgList->bbMinX, wbldgList->bbMinY, wbldgList->bbMaxX, wbldgList->bbMaxY))
+                if (area.areaID == "A000")
                 {
                     targetAreas.emplace_back(&area);
+                }
+                else
+                {
+                    for (auto& poly : area.areaPolygons)
+                    {
+                        if (IsMeshNeighborArea(poly, wbldgList->bbMinX, wbldgList->bbMinY, wbldgList->bbMaxX, wbldgList->bbMaxY))
+                        {
+                            targetAreas.emplace_back(&area);
+                            break;
+                        }
+                    }
                 }
             }
             if (targetAreas.size() == 0)
@@ -2801,34 +2818,53 @@ int __cdecl AnalizeBldgFiles(const char* str, const char* strOut, const bool ana
                     bool existsTarget = false;  // 解析対象の建物が存在するか
                     for (auto& build : wbldgList->buildingList)
                     {
-                        bool analyze = true;
+                        bool analyze = false;
 
                         for (auto& roof : build.roofSurfaceList)
                         {
                             for (auto& surface : roof.roofSurfaceList)
                             {
-                                // 屋根面の解析範囲内外判定(範囲外の場合は解析対象外)
-                                if (!analyze)
+                                // 凸多角形に分割する
+                                vector<CPoint2DPolygon> polygons;
+                                CPoint2DPolygon polygon;
+                                for (const auto& p : surface.posList)
                                 {
-                                    break;
+                                    CPoint2D pt2d = CPoint2D(p.x, p.y);
+                                    polygon.Add(pt2d);
                                 }
+
+                                // 左側を始点にする
+                                polygon.StartLeft();
+
+                                // 凸多角形
+                                if (polygon.IsConvexPolygon())
+                                {
+                                    polygons.emplace_back(polygon);
+                                }
+                                // 凹多角形
                                 else
                                 {
-                                    // 内外判定用
-                                    vector<CPoint2D> point2DList{};
-
-                                    for (auto& pos : surface.posList)
-                                    {
-                                        CPoint2D p2D = CPoint2D(pos.x, pos.y);
-                                        point2DList.emplace_back(p2D);
-                                    }
-
-                                    CPoint2DPolygon tmpPoly;
-                                    analyze &= IsPolygonInArea(area->pos2dList, point2DList, tmpPoly);
+                                    // 凸多角形に分割する
+                                    polygon.GetConvexPolygons(polygons);
                                 }
-                            }
 
-                            if (!analyze) break;
+                                // 屋根面の解析範囲内外判定(範囲外の場合は解析対象外)
+                                for (auto& areaPoly : area->areaPolygons)
+                                {
+                                    for (auto& poly : polygons)
+                                    {
+                                        CPoint2DPolygon tmpPoly;
+                                        if (IsPolygonInArea(areaPoly, poly, tmpPoly))
+                                        {
+                                            analyze = true;
+                                            break;
+                                        }
+                                    }
+                                    if (analyze) break;
+                                }
+                                if (analyze) break;
+                            }
+                            if (analyze) break;
                         }
 
                         if (analyze)
@@ -4090,6 +4126,7 @@ int __cdecl LOD2DataOut(const char* str, const char* strOut)
         BSTR tex_xp3 = SysAllocString(TEX_XPATH3);
         reader->selectSingleNode(tex_xp3, &texNode);
         MSXML2::IXMLDOMNodePtr pPearentNode = 0;
+        MSXML2::IXMLDOMNodePtr removeNode = 0;
         if (texNode != NULL) {
             hResult = texNode->get_parentNode(&pPearentNode);
             if (FAILED(hResult))
@@ -4097,9 +4134,8 @@ int __cdecl LOD2DataOut(const char* str, const char* strOut)
                 assert(!"親ノードタイプの取得に失敗");
                 return 1;
             }
+            pPearentNode->removeChild(texNode, &removeNode);
         }
-        MSXML2::IXMLDOMNodePtr removeNode = 0;
-        pPearentNode->removeChild(texNode, &removeNode);
 
         // テクスチャノード追加
         if (wBuildingList.size() > 0) {
@@ -4211,9 +4247,9 @@ int __cdecl LOD2DataOut(const char* str, const char* strOut)
                         assert(!"親ノードタイプの取得に失敗");
                         continue;
                     }
+                    removeNode = 0;
+                    pPearentNode->removeChild(texNode, &removeNode);
                 }
-                removeNode = 0;
-                pPearentNode->removeChild(texNode, &removeNode);
 
                 // テクスチャノード追加
                 if (wBuildingList.size() > 0) {

@@ -111,6 +111,11 @@ void CCalcSolarPotentialMng::finalize()
 
 	if (m_pmapResultData)
 	{
+		for (auto& [areaId, resultdata] : *m_pmapResultData)
+		{
+			delete resultdata.pBuildMap;
+			delete resultdata.pLandData;
+		}
 		m_pmapResultData->clear();
 		delete m_pmapResultData;
 		m_pmapResultData = NULL;

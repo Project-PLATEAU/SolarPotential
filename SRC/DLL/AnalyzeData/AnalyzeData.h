@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "../../LIB/CommonUtil/CGeoUtil.h"
+#include "../../LIB/CommonUtil/CPoint2DPolygon.h"
 
 
 #include <Windows.h>
@@ -355,6 +356,8 @@ typedef struct areaData
     bool analyzeLand{ false };                  // 範囲内土地の解析対象フラグ
 
     std::vector<std::string> gmlFileList;       // 範囲内のCityGMLファイルリスト
+
+    std::vector<CPoint2DPolygon> areaPolygons;  // エリアの凸ポリゴンリスト
 
     ~areaData()
     {

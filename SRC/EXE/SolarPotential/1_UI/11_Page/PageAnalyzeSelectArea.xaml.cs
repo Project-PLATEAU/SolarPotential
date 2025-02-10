@@ -463,7 +463,7 @@ namespace SolarPotential
 
             if (AnalyzeParam.Instance.Target.Build)
             {
-                var areaList = AnalyzeParam.Instance.AreaList.Where(x => !x.IsShpData).ToList();
+                var areaList = AnalyzeParam.Instance.AreaList.Where(x => !x.IsShpData && !x.Exclusion_flg).ToList();
                 if (areaList == null || areaList.Count() == 0)
                 {
                     var result = MessageBox.Show("入力した3D都市モデルのLOD2整備範囲全域を対象に解析します。\n" +
@@ -569,6 +569,8 @@ namespace SolarPotential
             {
                 AnalyzeParam.Instance.AreaList.Remove(area);
             }
+
+            SelectId = -1;
         }
 
         private void MapShowButton_Click(object sender, RoutedEventArgs e)
@@ -740,6 +742,8 @@ namespace SolarPotential
 
         private void ListSelectArea_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (!IsDispMap) return;
+
             var item = ListSelectArea.SelectedItem;
             if (item == null) return;
 
