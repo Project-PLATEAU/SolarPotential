@@ -13,8 +13,8 @@
 | 項目 | 最小動作環境 | 推奨動作環境 | 
 | - | - | - | 
 | OS | Microsoft Windows 10 または 11 | 同左 | 
-| CPU | Intel Core i3以上 | Intel Core i5以上 | 
-| メモリ | 4GB以上 | 8GB以上 | 
+| CPU | Intel Core i5以上 | Intel Core i7以上 | 
+| メモリ | 8GB以上 | 16GB以上 | 
 | ディスプレイ解像度 | 1024×768以上 |  同左  | 
 | ネットワーク       | 範囲選択機能を使用する場合、以下のURLを閲覧できる環境が必要。<br>・地理院地図(国土地理院)<br>http://cyberjapandata.gsi.go.jp<br>地図表示のため標準地図を参照する。 | 同左 | 
 
