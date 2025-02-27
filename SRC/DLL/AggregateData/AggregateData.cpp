@@ -2795,7 +2795,7 @@ vector<AGTBUILDING> GetBldgAggregateData(wstring xmldata, int meshid, vector<JUD
                 // 値を取得
                 MSXML2::IXMLDOMNodePtr lightPollutionOneDayValue = 0;
                 BSTR val = SysAllocString(XPATH_aggregateData2);
-                lightPollutionWinter->selectSingleNode(val, &lightPollutionOneDayValue);
+                lightPollutionOneday->selectSingleNode(val, &lightPollutionOneDayValue);
                 if (NULL != lightPollutionOneDayValue)
                 {
                     // ノードタイプ取得
@@ -2987,6 +2987,8 @@ vector<string> GetAggregateData(string folderPath, string csvfile){
         int lightPollutionSplingTotal = 0;
         // 光害発生時間総計（冬至）
         int lightPollutionWinterTotal = 0;
+        // 光害発生時間総計（指定日）
+        int lightPollutionOnedayTotal = 0;
         // 範囲内優先度1建物数
         int priorityLevel1Count = 0;
         // 範囲内優先度2建物数
@@ -3015,8 +3017,9 @@ vector<string> GetAggregateData(string folderPath, string csvfile){
                                     lightPollutionSummerTotal = lightPollutionSummerTotal + (int)item2.dLightPollutionSummer;
                                     lightPollutionSplingTotal = lightPollutionSplingTotal + (int)item2.dLightPollutionSpling;
                                     lightPollutionWinterTotal = lightPollutionWinterTotal + (int)item2.dLightPollutionWinter;
+                                    lightPollutionOnedayTotal = lightPollutionOnedayTotal + (int)item2.dLightPollutionOneDay;
                                     // 光害建物数
-                                    if (item2.dLightPollutionSummer + item2.dLightPollutionSpling + item2.dLightPollutionWinter > 0) {
+                                    if (item2.dLightPollutionSummer + item2.dLightPollutionSpling + item2.dLightPollutionWinter + item2.dLightPollutionOneDay > 0) {
                                         lightPollutionBuilding++;
                                     }
                                     // 優先度
@@ -3049,8 +3052,9 @@ vector<string> GetAggregateData(string folderPath, string csvfile){
             std::ostringstream ss;
             ss << area.areaID.c_str() << "," << building << "," << solorRadiationTotal << "," << electricGenerationTotal << ","
                 << lightPollutionBuilding << "," << lightPollutionSummerTotal << "," << lightPollutionSplingTotal << ","
-                << lightPollutionWinterTotal << "," << priorityLevel1Count << "," << priorityLevel2Count << ","
-                << priorityLevel3Count << "," << priorityLevel4Count << "," << priorityLevel5Count;
+                << lightPollutionWinterTotal << "," << lightPollutionOnedayTotal << ","
+                << priorityLevel5Count << "," << priorityLevel4Count << ","
+                << priorityLevel3Count << "," << priorityLevel2Count << "," << priorityLevel1Count;
             std::string s = ss.str();
             result.emplace_back(s);
         }
@@ -3155,9 +3159,6 @@ int __cdecl AggregateBldgFiles(const char* str, const char* strOut)
         std::cout << "strOut is null." << std::endl;
         return (int)eExitCode::Error;
     }
-    std::vector<std::string> fileName;
-
-    //allList.clear();
 
     // キャンセルファイルパス
     std::filesystem::path path = std::filesystem::path(strOut) / CANCELFILE;
@@ -3174,6 +3175,8 @@ int __cdecl AggregateBldgFiles(const char* str, const char* strOut)
         if (!std::filesystem::exists(areadir))  continue;
 
         std::string areapath = areadir.string();
+
+        std::vector<std::string> fileName;
 
         //ファイル名取得
         if (getFileNames(areapath, extension_gml, fileName) == true) {
