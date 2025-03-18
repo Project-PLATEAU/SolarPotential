@@ -4,7 +4,7 @@
 
 本書では、カーボンニュートラル施策推進支援システム(以下「本システム」という。)の利用環境構築手順について記載しています。本システムの構成や仕様の詳細については以下も参考にしてください。
 
-[技術検証レポート](https://www.mlit.go.jp/plateau/file/libraries/doc/plateau_tech_doc_0030_ver01.pdf)
+[技術検証レポート](https://www.mlit.go.jp/plateau/file/libraries/doc/plateau_tech_doc_0110_ver01.pdf)
 
 # 2 動作環境
 
