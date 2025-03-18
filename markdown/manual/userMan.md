@@ -68,9 +68,10 @@
 
 1. 3D都市モデル
 - G空間情報センターから入手したCityGMLフォルダ（3D都市モデル標準製品仕様書 第4.X版）を指定します。
-- ※3D都市モデル標準製品仕様書 第3.X版に準拠したCityGMLファイルを利用する場合は、実行ファイル配下のファイル（SolarPotentialExe\Assets\CityGMLNameSpaces.txt）をテキストエディタで開き、赤字で示す名前空間のパスの末尾を'/3.1'から'/3.0'に編集してください。
 
-- ![](../resources/userMan/tutorial_037.png)
+    ※ 3D都市モデル標準製品仕様書 第3.X版に準拠したCityGMLファイルを利用する場合は、実行ファイル配下のファイル（SolarPotentialExe\Assets\CityGMLNameSpaces.txt）をテキストエディタで開き、赤字で示す名前空間のパスの末尾を'/3.1'から'/3.0'に編集してください。
+
+     ![](../resources/userMan/tutorial_037.png)
 
 2. 可照時間
 - 国立天文台のウェブサイト(こよみの計算Webページ)から取得した可照時間のCSVファイルを指定します。
