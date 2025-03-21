@@ -1,2 +1,2 @@
-# PLATEAU-UC22-013-SolarPotential-Manual
+# SolarPotential-Manual
 ph-pages
