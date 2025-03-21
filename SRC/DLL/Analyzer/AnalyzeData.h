@@ -2,6 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include "../../LIB/CommonUtil/CGeoUtil.h"
+#include "../../LIB/CommonUtil/CPoint2DPolygon.h"
+
 using namespace std;
 
 #define CANCELFILE "cancel.txt"
@@ -29,11 +33,22 @@ typedef struct demPosition
 
 } DEMPOSITION;
 
-// DEMメッシュ
+// DEM詳細
+typedef struct demMembers
+{
+    std::string lv3meshID;                      // 3次メッシュID
+    std::vector<CTriangle> posTriangleList;     // 三角形の座標リスト
+    // 3次メッシュ範囲(三角形が存在する範囲)のバウンディング
+    double bbMinX{ 0.0 }, bbMinY{ 0.0 };
+    double bbMaxX{ 0.0 }, bbMaxY{ 0.0 };
+
+} DEMMEMBERS;
+
+// DEM
 typedef struct demList
 {
-    std::string meshID;		                    // メッシュID
-    std::vector<CTriangle> posTriangleList;     // 三角形の座標リスト
+    std::string lv2meshID;                  // 2次メッシュID
+    std::vector<DEMMEMBERS> demMemberList;  // DEM詳細リスト
 
 } DEMLIST;
 
@@ -47,12 +62,21 @@ typedef struct position
 
 } POSITION;
 
-// 屋根詳細
+// interior
+typedef struct interior
+{
+    std::string linearRing;                 // ラインID
+    std::vector<CPointBase> posList;        // 座標リスト
+
+} INTERIOR;
+
+// 面詳細
 typedef struct surfaceMembers
 {
-    std::string polygon;		                    // ポリゴンID
-    std::string linearRing;		                // ラインID
-    std::vector<CPointBase> posList;               // 座標リスト
+    std::string polygon;                                    // ポリゴンID
+    std::string linearRing;                                 // ラインID
+    std::vector<CPointBase> posList;                        // 座標リスト(外周)
+    std::vector<INTERIOR> interiorList;                     // 内周ポリゴンリスト
 
 } SURFACEMEMBERS;
 
@@ -77,8 +101,9 @@ typedef struct wallSurfaces
 typedef struct buildings
 {
     std::string building;		                // 建物ID
-    std::vector<ROOFSURFACES> roofSurfaceList;   // 屋根リスト
-    std::vector<WALLSURFACES> wallSurfaceList;   // 壁リスト
+    std::vector<ROOFSURFACES> roofSurfaceList;  // 屋根リスト
+    std::vector<WALLSURFACES> wallSurfaceList;  // 壁リスト
+    //bool analyze{ false };
 
 } BUILDINGS;
 
@@ -87,6 +112,7 @@ typedef struct buildingsLOD1
 {
     std::string building;
     std::vector<WALLSURFACES> wallSurfaceList;   // 壁リスト（全ての面）
+
 }BUILDINGSLOD1;
 
 // 建物、メッシュ座標
@@ -98,10 +124,10 @@ typedef struct buildingsInfo
     int bbMaxX{ 0 }, bbMaxY{ 0 };
 } BUILDINGSINFO;
 
-// メッシュ
+// 3次メッシュ
 typedef struct bldgList
 {
-    std::string meshID;		                    // メッシュID
+    std::string meshID;		                    // 3次メッシュID
     std::vector<BUILDINGS> buildingList;        // 建物リスト
     std::vector<BUILDINGSLOD1> buildingListLOD1; // 建物リスト(LOD1)
     // メッシュ座標のMIN,MAX(平面直角座標)
@@ -109,13 +135,117 @@ typedef struct bldgList
     int bbMaxX{ 0 }, bbMaxY{ 0 };
 } BLDGLIST;
 
+
+// 土地面詳細
+typedef struct landSurfaceMembers
+{
+    std::vector<CPointBase> posList;        // 座標リスト(メッシュ)
+    //std::vector<CTriangle> triangleList;    // 三角形リスト
+
+} LANDSURFACEMEMBERS;
+
+// 土地面
+typedef struct landSurfaces
+{
+    std::string surfaceID;
+    std::vector<LANDSURFACEMEMBERS> landSurfaceList;    // 土地面(メッシュ)の詳細リスト
+    std::vector<MESHPOSITION_XY> meshPosList;           // メッシュ座標リスト
+    int meshSize{ 5 };                                  // 5m
+    int area;                                           // 土地面積(抽出した土地面のピクセル数)
+
+} LANDSURFACES;
+
+// 3次メッシュIDと建物リストのマップ
+typedef std::map<std::string, std::vector<BUILDINGS*>> BuildingsMap;
+
+// エリア
+typedef struct areaData
+{
+    std::string areaID;                         // エリアID
+    std::string areaName;                       // エリア名称
+    std::vector<CPoint2D> pos2dList;            // エリア構成点リスト
+    int direction;                              // エリア内の補正方位
+    double degree;                              // エリア内の補正傾斜角
+    std::string areaExplanation;                // エリア説明
+    bool isWater;                               // 水部フラグ
+
+    // エリア内の各データ
+    std::vector<BLDGLIST*> neighborBldgList;    // 解析エリア周辺の3次メッシュ建物リスト
+    std::vector<DEMMEMBERS*> neighborDemList;   // 解析エリア周辺の3次メッシュDEMリスト
+    BuildingsMap targetBuildings;               // 解析対象の建物リスト(key:3次メッシュID)
+    LANDSURFACES landSurface;                   // 土地データ
+    std::vector<CPointBase> pointMemData;       // 抽出した土地面のポイントデータ
+    double bbMinX{ DBL_MAX }, bbMinY{ DBL_MAX };
+    double bbMaxX{ -DBL_MAX }, bbMaxY{ -DBL_MAX };
+
+    bool analyzeBuild{ false };                 // 範囲内建物の解析対象フラグ
+    bool analyzeLand{ false };                  // 範囲内土地の解析対象フラグ
+
+    std::vector<std::string> gmlFileList;       // 範囲内のCityGMLファイルリスト
+
+    std::vector<CPoint2DPolygon> areaPolygons;  // エリアの凸ポリゴンリスト
+
+} AREADATA;
+
+// 道路
+typedef struct tranSurfaces
+{
+    //std::string tranSurfaceId;                      // 道路面ID
+    std::vector<SURFACEMEMBERS> tranSurfaceList;    // 道路詳細リスト
+
+} TRANSURFACES;
+
+// 道路LOD1
+typedef struct transLOD1
+{
+    //std::string road;                           // 道路ID
+    std::vector<TRANSURFACES> tranSurfaceList;  // 道路リスト
+
+} TRANSLOD1;
+
+typedef struct transInfo
+{
+    std::vector<TRANSLOD1> tranListLOD1;        // 道路リスト(LOD1)
+    int bbMinX{ 0 }, bbMinY{ 0 };
+    int bbMaxX{ 0 }, bbMaxY{ 0 };
+} TRANSINFO;
+
+// 道路リスト
+typedef struct tranList
+{
+    std::string meshID;		                    // 3次メッシュID
+    std::vector<TRANSLOD1> tranListLOD1;        // 道路リスト(LOD1)
+    // メッシュ座標のMIN,MAX(平面直角座標)
+    int bbMinX{ 0 }, bbMinY{ 0 };
+    int bbMaxX{ 0 }, bbMaxY{ 0 };
+} TRANLIST;
+
+
+// LOD2出力項目
+typedef struct lod2outList
+{
+    std::string meshID;		                    // メッシュID
+    std::string building;		                // 建物ID
+    std::string solarInsolation;                // 年間日射量
+    std::string solarPowerGeneration;           // 年間発電量
+    std::string lightPollutionTimeSpring;		// 公害発生時間数_春分
+    std::string lightPollutionTimeSummer;		// 公害発生時間数_夏至
+    std::string lightPollutionTimeWinter;		// 公害発生時間数_冬至
+
+    bool operator<(const lod2outList& right) const {
+        return meshID == right.meshID ? building < right.building : meshID < right.meshID;
+    }
+
+} LOD2OUTLIST;
+
 // （CSV読み取り用）年間予測日射量、発電量
 enum struct yearPrediction
 {
-    meshID = 0,                 // メッシュID
-    building = 1,               // 建物ID
-    solarInsolation = 2,        // 日射量
-    solarPowerGeneration = 3,   // 発電量
+    areaID = 0,                 // エリアID
+    meshID = 1,                 // メッシュID
+    building = 2,               // 建物ID
+    solarInsolation = 4,        // 日射量
+    solarPowerGeneration = 5,   // 発電量
 };
 
 // （CSV読み取り用）光害発生時間総数
@@ -128,8 +258,6 @@ enum struct lightPollution
     winter = 4,                 // 冬至
 };
 
-// vector<BLDGLIST>を取得する
-extern "C" __declspec(dllimport) void* __cdecl GetAllList();
+// vector<AREADATA>を取得する
+extern "C" __declspec(dllimport) void* __cdecl GetAllAreaList();
 
-// DEMリストを取得
-extern "C" __declspec(dllimport) void* __cdecl GetAllDemList();

@@ -2,7 +2,7 @@
 #include "DataImport.h"
 #include "../../LIB/CommonUtil/CTime.h"
 
-// Œ–ˆ‚Ì‰ÂÆŠÔ
+// ‰ÂÆŠÔ
 
 class CImportPossibleSunshineData : public CDataImport
 {

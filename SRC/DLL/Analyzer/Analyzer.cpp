@@ -13,138 +13,211 @@
 
 #include "../../LIB/CommonUtil/ReadINIParam.h"
 #include "../../LIB/CommonUtil/CFileUtil.h"
+#include "../../LIB/CommonUtil/ExitCode.h"
 
 
 #include "UIParam.h"
 
-UIParam* pParam = nullptr;
+CUIParam* pParam = NULL;
 
-CImportPossibleSunshineData app1;
-CImportAverageSunshineData app2;
-CImportMetpvData app3;
-
+CImportPossibleSunshineData KashoData;
+CImportAverageSunshineData NisshoData;
+CImportMetpvData SnowDepthData;
 
 // 解析処理開始
-ANALYZER_API bool AnalyzeStart(const char* outDir)
+ANALYZER_API int AnalyzeStart(const char* outDir)
 {
-	bool ret = true;
+	eExitCode code = eExitCode::Normal;
 
-	// 入力データ読み込み
-	ret &= app1.ReadData();
-	ret &= app2.ReadData();
-	ret &= app3.ReadData();
-	if (!ret)	return false;	// 入力データ読み込み失敗
-
-	// 設定ファイル読み込み
-	GetINIParam()->Initialize();
-
-	// 解析対象年を取得(国立天文台のデータを基準とする)
-	int iTargetYear = app1.GetYear();
-
-	// 発電ポテンシャル推計
-	if (pParam->bExecSolarPotantial)
+	try
 	{
+		// 入力データ読み込み
+		if (!KashoData.ReadData())
+		{
+			delete pParam;
+			pParam = nullptr;
+			return (int)eExitCode::Err_KashoData;
+		}
+		if (!NisshoData.ReadData())
+		{
+			delete pParam;
+			pParam = nullptr;
+			return (int)eExitCode::Err_NisshoData;
+		}
+		if (pParam->pInputData->strSnowDepthData != "")
+		{
+			if (!SnowDepthData.ReadData())
+			{
+				delete pParam;
+				pParam = nullptr;
+				return (int)eExitCode::Err_SnowDepthData;
+			}
+		}
+
+		// 解析対象年を取得(国立天文台のデータを基準とする)
+		int iTargetYear = KashoData.GetYear();
+
+		// 出力パス
 		pParam->strOutputDirPath = CStringEx::ToWString(outDir);
-		CCalcSolarPotentialMng cSolarPotentiaMng(&app1, &app2, &app3, pParam, iTargetYear);
-		ret &= cSolarPotentiaMng.AnalyzeSolarPotential();
-	}
 
-	// 反射シミュレーション
-	if (pParam->bExecReflection)
+		// 発電ポテンシャル推計
+		if (pParam->bExecSolarPotantial)
+		{
+			CCalcSolarPotentialMng cSolarPotentiaMng(&KashoData, &NisshoData, &SnowDepthData, pParam, iTargetYear);
+			bool ret = cSolarPotentiaMng.AnalyzeSolarPotential();
+
+			if (!ret)
+			{
+				code = cSolarPotentiaMng.GetExitCode();
+				delete pParam;
+				pParam = nullptr;
+				return (int)code;
+			}
+		}
+
+		// 反射シミュレーション
+		if (pParam->bExecReflection)
+		{
+			CReflectionSimulateMng reflSimMng;
+			bool ret = reflSimMng.Exec(outDir, pParam, iTargetYear);
+			if (!ret)
+			{
+				code = reflSimMng.GetExitCode();
+				delete pParam;
+				pParam = nullptr;
+				return (int)code;
+			}
+		}
+	}
+	catch (...)
 	{
-		CReflectionSimulateMng reflSimMng;
-		reflSimMng.Exec(outDir, pParam, iTargetYear);
+		code = eExitCode::Error;
 	}
 
 	// 解放
 	delete pParam;
 	pParam = nullptr;
 
-	return ret;
-}
-
-
-// 月毎の可照時間
-ANALYZER_API void SetPossibleSunshineDataPath(char* path)
-{
-	app1.SetReadFilePath(path);
-	return;
-}
-
-// 毎月の平均日照時間
-ANALYZER_API void SetAverageSunshineDataPath(char* path)
-{
-	app2.SetReadFilePath(path);
-	return;
-}
-
-// 月毎の積雪深
-ANALYZER_API void SetMetpvDataPath(char* path)
-{
-	app3.SetReadFilePath(path);
-	return;
+	return (int)code;
 }
 
 ANALYZER_API void InitializeUIParam()
 {
-	if (!pParam)
+	if (pParam)
 	{
-		pParam = new UIParam;
+		delete pParam;
 	}
+	pParam = new CUIParam;
+
+	// 設定ファイル読み込み
+	GetINIParam()->Initialize();
 }
 
-// 出力フォルダ
-ANALYZER_API void SetOutputPath(char* path)
+// 入力パラメータ
+ANALYZER_API void SetAnalyzeParam(AnalyzeParam* analyzeParam)
 {
-	pParam->strOutputDirPath = CStringEx::ToWString(path);
+	assert(pParam);
+
+	// 解析対象
+	pParam->bExecSolarPotantial = analyzeParam->bExecSolarPotantial;
+	pParam->bExecReflection = analyzeParam->bExecReflection;
+	pParam->bExecBuild = analyzeParam->bExecBuild;
+	pParam->bExecLand = analyzeParam->bExecLand;
+
+	return;
 }
 
-
-// 発電ポテンシャル推計
-ANALYZER_API void SetElecPotential(double d1, int e, double d2, double d3)
+ANALYZER_API void SetAnalyzeInputData(AnalyzeInputData* p)
 {
-	pParam->_elecPotential = CElecPotential(d1, (eDirections)e, d2, d3);
+	assert(pParam);
+
+	pParam->pInputData = new CInputData(
+		p->strKashoData,
+		p->strNisshoData,
+		p->strSnowDepthData,
+		p->strLandData,
+		p->bUseDemData
+	);
+
+	// 各クラスのファイルパスを設定
+	KashoData.SetReadFilePath(p->strKashoData);
+	NisshoData.SetReadFilePath(p->strNisshoData);
+	SnowDepthData.SetReadFilePath(p->strSnowDepthData);
+
 }
 
-// 屋根面補正
-ANALYZER_API void SetRoofSurfaceCorrect(double d1, double d2)
+ANALYZER_API void SetSolarPotentialParam(SolarPotentialParam* p)
 {
-	pParam->_roofSurfaceCorrect = CRoofSurfaceCorrect(d1, d2);
+	assert(pParam);
+
+	CSolarPotential_Roof* pRoof = new CSolarPotential_Roof(
+		p->dArea2D_Roof,
+		(eDirections)p->eDirection_Roof,
+		p->dDirectionDegree_Roof,
+		p->dSlopeDegree_Roof,
+		p->dCorrectionCaseDeg_Roof,
+		(eDirections)p->eCorrectionDirection_Roof,
+		p->dCorrectionDirectionDegree_Roof,
+		p->bExclusionInterior_Roof
+	);
+
+	CSolarPotential_Land* pLand = new CSolarPotential_Land(
+		p->dArea2D_Land,
+		p->dSlopeDegree_Land,
+		(eDirections)p->eCorrectionDirection_Land,
+		p->dCorrectionDirectionDegree_Land
+	);
+
+	pParam->pSolarPotentialParam = new CSolarPotentialParam(
+		pRoof, pLand,
+		p->dPanelMakerSolarPower,
+		p->dPanelRatio
+	);
+
 }
 
-// 太陽光パネル単位面積当たりの発電容量
-ANALYZER_API void SetAreaSolarPower(double d)
+ANALYZER_API void SetReflectionParam(ReflectionParam* p)
 {
-	pParam->_dAreaSolarPower = d;
+	assert(pParam);
+
+	CReflectionCorrect* pRoof_Lower = new CReflectionCorrect(
+		p->bCustom_Roof_Lower,
+		(eDirections)p->eAzimuth_Roof_Lower,
+		p->dSlopeAngle_Roof_Lower
+	);
+
+	CReflectionCorrect* pRoof_Upper = new CReflectionCorrect(
+		p->bCustom_Roof_Upper,
+		(eDirections)p->eAzimuth_Roof_Upper,
+		p->dSlopeAngle_Roof_Upper
+	);
+
+	CReflectionCorrect* pLand_Lower = new CReflectionCorrect(
+		p->bCustom_Land_Lower,
+		(eDirections)p->eAzimuth_Land_Lower,
+		p->dSlopeAngle_Land_Lower
+	);
+
+	CReflectionCorrect* pLand_Upper = new CReflectionCorrect(
+		p->bCustom_Land_Upper,
+		(eDirections)p->eAzimuth_Land_Upper,
+		p->dSlopeAngle_Land_Upper
+	);
+
+	pParam->pReflectionParam = new CReflectionParam(
+		pRoof_Lower, pRoof_Upper, pLand_Lower, pLand_Upper, p->dReflectionRange
+	);
+
 }
 
-// 反射シミュレーション時の屋根面の向き・傾き補正(3度未満)
-ANALYZER_API void SetReflectRoofCorrect_Lower(bool b1, bool b2, int e, double d)
+ANALYZER_API void SetAnalyzeDateParam(AnalyzeDateParam* date)
 {
-	pParam->_reflectRoofCorrect_Lower = CReflectionRoofCorrect(b1, b2, (eDirections)e, d);
+	assert(pParam);
+
+	// 期間
+	pParam->eAnalyzeDate = (eDateType)date->eDateType;
+	pParam->nMonth = date->iMonth;
+	pParam->nDay = date->iDay;
+
 }
 
-// 反射シミュレーション時の屋根面の向き・傾き補正(3度以上)
-ANALYZER_API void SetReflectRoofCorrect_Upper(bool b1, bool b2, int e, double d)
-{
-	pParam->_reflectRoofCorrect_Upper = CReflectionRoofCorrect(b1, b2, (eDirections)e, d);
-}
-
-// DEMデータを使用するか
-ANALYZER_API void SetEnableDEMData(bool b)
-{
-	pParam->bEnableDEMData = b;
-}
-
-// 発電ポテンシャル推計実行フラグ
-ANALYZER_API void SetExecSolarPotantial(bool b)
-{
-	pParam->bExecSolarPotantial = b;
-}
-
-
-// 反射シミュレーション実行フラグ
-ANALYZER_API void SetExecReflection(bool b)
-{
-	pParam->bExecReflection = b;
-}

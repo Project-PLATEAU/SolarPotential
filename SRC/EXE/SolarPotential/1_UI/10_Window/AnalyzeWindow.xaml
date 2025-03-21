@@ -1,0 +1,42 @@
+﻿<Window x:Class="SolarPotential.AnalyzeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SolarPotential"
+        mc:Ignorable="d"
+		Height="800" Width="1100">
+	
+	<DockPanel LastChildFill="True">
+		<Border DockPanel.Dock="Top" Height="Auto" BorderBrush="Gray" BorderThickness="1">
+			<Grid>
+				<Border Height="Auto" BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Margin="5">
+					<TextBlock Text="解析・シミュレーション" FontSize="20" Margin="20,5" HorizontalAlignment="Left"/>
+				</Border>
+				<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
+					<Button x:Name="ReadParamButton" Content="パラメータ読込" Click="ReadParamButton_Click" Width="100" Height="35" Padding="8"></Button>
+					<Button x:Name="CustomButton" Content="詳細設定" Click="CustomSettingsButton_Click" Width="100" Height="35" Margin="20,0,0,0" Padding="8"></Button>
+				</StackPanel>
+			</Grid>
+		</Border>
+		<Border BorderBrush="Gray" BorderThickness="1">
+			<Grid DockPanel.Dock="Left" Width="180">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="30"/>
+					<RowDefinition Height="30"/>
+					<RowDefinition Height="30"/>
+					<RowDefinition/>
+				</Grid.RowDefinitions>
+				<Button x:Name="DataIOButton" Click="DataIOButton_Click" Grid.Row="0" Content="入出力データ設定" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="20,4,8,5" Background="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"></Button>
+				<Button x:Name="SelectAreaButton" Click="SelectAreaButton_Click" Grid.Row="1" Content="解析エリア設定" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="20,4,8,5"></Button>
+				<Button x:Name="ExecButton" Click="ExecButton_Click" Grid.Row="2" Content="解析実行" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="20,4,8,5"></Button>
+				<Button x:Name="BackButton" Click="BackButton_Click" Grid.Row="3" Content="トップに戻る" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="20,4,8,5"></Button>
+			</Grid>
+		</Border>
+		<StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" HorizontalAlignment="Right">
+			<Button x:Name="BackPageButton" Content="{Binding BackButtonText}" Width="150" Click="BackPageButton_Click" Margin="0,10,10,5" Padding="10,8"/>
+			<Button x:Name="NextPageButton" Content="{Binding NextButtonText}" Width="150" Click="NextPageButton_Click" Margin="0,10,10,5" Padding="10,8"/>
+		</StackPanel>
+		<Frame x:Name="MainContentFrame" NavigationUIVisibility="Hidden"/>
+	</DockPanel>
+</Window>

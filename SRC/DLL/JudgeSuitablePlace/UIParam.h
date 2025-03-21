@@ -38,6 +38,14 @@ enum class eDirections
 	NORTH_NORTHWEST,		// 北北西	337.5°
 };
 
+// 座標系
+enum class eDatum
+{
+	UNKNOWN = 0,			// 不明
+	LATLON = 1,				// 緯度経度
+	XY,						// 平面直角座標
+
+};
 
 // 集計範囲
 class CAggregationRange
@@ -154,36 +162,42 @@ public:
 	std::string strRestrictAreaPath_1;		// フォルダパス１
 	double		dHeight_1;					// 高さ１
 	eDirections eDirections_1;				// 方位１
+	eDatum		eDatum_1;					// 座標系１
 	// 制限を設ける範囲のシェープファイル_2
 	std::string strRestrictAreaPath_2;		// フォルダパス２
 	double		dHeight_2;					// 高さ２
 	eDirections eDirections_2;				// 方位２
+	eDatum		eDatum_2;					// 座標系２
 	// 制限を設ける範囲のシェープファイル_3
 	std::string strRestrictAreaPath_3;		// フォルダパス３
 	double		dHeight_3;					// 高さ３
 	eDirections eDirections_3;				// 方位３
+	eDatum		eDatum_3;					// 座標系３
 
-	CRestrictParam(const std::string& d1, const double& d2, const eDirections& d3, const std::string& d4, const double& d5, const eDirections& d6, const std::string& d7, const double& d8, const eDirections& d9)
+	CRestrictParam(const std::string& d1, const double& d2, const eDirections& d3, const eDatum& e1, const std::string& d4, const double& d5, const eDirections& d6, const eDatum& e2, const std::string& d7, const double& d8, const eDirections& d9, const eDatum& e3)
 		: strRestrictAreaPath_1("")
 		, dHeight_1(0.0)
 		, eDirections_1(eDirections::UNKNOWN)
+		, eDatum_1(eDatum::UNKNOWN)
 		, strRestrictAreaPath_2("")
 		, dHeight_2(0.0)
 		, eDirections_2(eDirections::UNKNOWN)
+		, eDatum_2(eDatum::UNKNOWN)
 		, strRestrictAreaPath_3("")
 		, dHeight_3(0.0)
 		, eDirections_3(eDirections::UNKNOWN)
+		, eDatum_3(eDatum::UNKNOWN)
 	{
-		strRestrictAreaPath_1 = d1; dHeight_1 = d2; eDirections_1 = d3;
-		strRestrictAreaPath_2 = d4; dHeight_2 = d5; eDirections_2 = d6;
-		strRestrictAreaPath_3 = d7; dHeight_3 = d8; eDirections_3 = d9;
+		strRestrictAreaPath_1 = d1; dHeight_1 = d2; eDirections_1 = d3; eDatum_1 = e1;
+		strRestrictAreaPath_2 = d4; dHeight_2 = d5; eDirections_2 = d6; eDatum_2 = e2;
+		strRestrictAreaPath_3 = d7; dHeight_3 = d8; eDirections_3 = d9; eDatum_3 = e3;
 	}
 
 	CRestrictParam& operator = (const CRestrictParam& v) {
 		if (&v != this) {
-			strRestrictAreaPath_1 = v.strRestrictAreaPath_1; dHeight_1 = v.dHeight_1; eDirections_1 = v.eDirections_1;
-			strRestrictAreaPath_2 = v.strRestrictAreaPath_2; dHeight_2 = v.dHeight_2; eDirections_2 = v.eDirections_2;
-			strRestrictAreaPath_3 = v.strRestrictAreaPath_3; dHeight_3 = v.dHeight_3; eDirections_3 = v.eDirections_3;
+			strRestrictAreaPath_1 = v.strRestrictAreaPath_1; dHeight_1 = v.dHeight_1; eDirections_1 = v.eDirections_1; eDatum_1 = v.eDatum_1;
+			strRestrictAreaPath_2 = v.strRestrictAreaPath_2; dHeight_2 = v.dHeight_2; eDirections_2 = v.eDirections_2; eDatum_2 = v.eDatum_2;
+			strRestrictAreaPath_3 = v.strRestrictAreaPath_3; dHeight_3 = v.dHeight_3; eDirections_3 = v.eDirections_3; eDatum_3 = v.eDatum_3;
 		}
 		return *this;
 	}
@@ -197,8 +211,9 @@ public:
 		, m_pBuildingParam(NULL)
 		, m_pHazardParam(NULL)
 		, m_pRestrictParam(NULL)
+		, m_bExecBuild(false), m_bExecLand(false)
 		, m_strOutputDirPath(L"")
-		, m_strBldgResultPath(L"")
+		, m_strAnalyzeResultPath(L"")
 	{
 	
 	};
@@ -215,6 +230,9 @@ public:
 	CHazardParam*		m_pHazardParam;
 	CRestrictParam*		m_pRestrictParam;
 
+	bool				m_bExecBuild;
+	bool				m_bExecLand;
+
 	std::wstring		m_strOutputDirPath;
-	std::wstring		m_strBldgResultPath;
+	std::wstring		m_strAnalyzeResultPath;
 }; 

@@ -11,7 +11,8 @@ CReadINIParam::CReadINIParam(void)
 	, m_strAzimuthCSVPath(L"")
 	, m_dReflectivity(0.0)
 	, m_dReflectivitySnow(0.0)
-	, m_dDemHeight(0.0)
+	, m_dDemHeight_Build(0.0)
+	, m_dDemHeight_Land(0.0)
 	, m_dDemDist(0.0)
 {
 	for (int i = 0; i < 12; i++)
@@ -64,7 +65,10 @@ bool CReadINIParam::Initialize()
 	m_dReflectivitySnow = inifile.GetDouble("SolarRadiation", "ReflectivitySnow", 0.7);
 
 	// 標高しきい値[m]
-	m_dDemHeight = inifile.GetDouble("SolarRadiation", "DemHeight", 60.0);
+	m_dDemHeight_Build = inifile.GetDouble("SolarRadiation", "DemHeight_Build", 10.0);
+
+	// 標高しきい値[m]
+	m_dDemHeight_Land = inifile.GetDouble("SolarRadiation", "DemHeight_Land", 1.0);
 
 	// 判定対象とするDEMの距離[m]
 	m_dDemDist = inifile.GetDouble("SolarRadiation", "DemDist", 100.0);
@@ -122,10 +126,16 @@ double CReadINIParam::GetReflectivitySnow()
 	return	m_dReflectivitySnow;
 }
 
-// 標高しきい値[m]
-double CReadINIParam::GetDemHeight()
+// 建物解析用のDEM標高しきい値[m]
+double CReadINIParam::GetDemHeight_Build()
 {
-	return	m_dDemHeight;
+	return	m_dDemHeight_Build;
+}
+
+// 建物解析用のDEM標高しきい値[m]
+double CReadINIParam::GetDemHeight_Land()
+{
+	return	m_dDemHeight_Land;
 }
 
 // 判定対象とするDEMの距離[m]

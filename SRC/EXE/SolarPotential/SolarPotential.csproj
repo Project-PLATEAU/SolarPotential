@@ -1,0 +1,311 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B4D95C22-743C-4CBE-B771-0F82C9D55258}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>SolarPotential</RootNamespace>
+    <AssemblyName>SolarPotential</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>
+    </StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DotSpatial.Data, Version=3.0.1.0, Culture=neutral, PublicKeyToken=c29dbf30e059ca9d, processorArchitecture=MSIL">
+      <HintPath>packages\DotSpatial.Data.3.0.1\lib\net472\DotSpatial.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="DotSpatial.NTSExtension, Version=3.0.1.0, Culture=neutral, PublicKeyToken=928fbfe39f52ea75, processorArchitecture=MSIL">
+      <HintPath>packages\DotSpatial.NTSExtension.3.0.1\lib\net472\DotSpatial.NTSExtension.dll</HintPath>
+    </Reference>
+    <Reference Include="DotSpatial.Projections, Version=3.0.1.0, Culture=neutral, PublicKeyToken=272632bddd08a38b, processorArchitecture=MSIL">
+      <HintPath>packages\DotSpatial.Projections.3.0.1\lib\net472\DotSpatial.Projections.dll</HintPath>
+    </Reference>
+    <Reference Include="DotSpatial.Serialization, Version=3.0.1.0, Culture=neutral, PublicKeyToken=441f200f827611e7, processorArchitecture=MSIL">
+      <HintPath>packages\DotSpatial.Serialization.3.0.1\lib\net472\DotSpatial.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="NetTopologySuite, Version=2.0.0.0, Culture=neutral, PublicKeyToken=f580a05016ebada1, processorArchitecture=MSIL">
+      <HintPath>packages\NetTopologySuite.2.4.0\lib\netstandard2.0\NetTopologySuite.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Page Include="1_UI\10_Window\AnalyzeWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\10_Window\CustomSettingsWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\10_Window\HelpWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="1_UI\10_Window\ReadParamWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\10_Window\AggregateWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\10_Window\MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="1_UI\10_Window\AnalyzeWindow.xaml.cs">
+      <DependentUpon>AnalyzeWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\10_Window\CustomSettingsWindow.xaml.cs">
+      <DependentUpon>CustomSettingsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\10_Window\HelpWindow.xaml.cs">
+      <DependentUpon>HelpWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\10_Window\ReadParamWindow.xaml.cs">
+      <DependentUpon>ReadParamWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\10_Window\AggregateWindow.xaml.cs">
+      <DependentUpon>AggregateWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageSolarPotentialParams.xaml.cs">
+      <DependentUpon>PageSolarPotentialParams.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageReflectionParams.xaml.cs">
+      <DependentUpon>PageReflectionParams.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageJudgeParams.xaml.cs">
+      <DependentUpon>PageJudgeParams.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageCommonProgress.xaml.cs">
+      <DependentUpon>PageCommonProgress.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageCommonExecute.xaml.cs">
+      <DependentUpon>PageCommonExecute.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageCommonComplete.xaml.cs">
+      <DependentUpon>PageCommonComplete.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageAnalyzeDataIO.xaml.cs">
+      <DependentUpon>PageAnalyzeDataIO.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageAnalyzeSelectArea.xaml.cs">
+      <DependentUpon>PageAnalyzeSelectArea.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="1_UI\11_Page\PageAggregateDataIO.xaml.cs">
+      <DependentUpon>PageAggregateDataIO.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="2_Manager\GeoUtil.cs" />
+    <Compile Include="2_Manager\LogManager.cs" />
+    <Compile Include="2_Manager\Params\AreaData.cs" />
+    <Compile Include="2_Manager\ParamFileManager.cs" />
+    <Compile Include="2_Manager\Params\AggregateParam.cs" />
+    <Compile Include="2_Manager\Params\AnalyzeParam.cs" />
+    <Compile Include="2_Manager\ResultDataPathManager.cs" />
+    <Compile Include="3_Class\BindableBase.cs" />
+    <Compile Include="3_Class\ClassAnalyzeHTML.cs" />
+    <Compile Include="3_Class\ClassHTML.cs" />
+    <Compile Include="3_Class\ExecuteAggregate.cs" />
+    <Compile Include="3_Class\ExecuteAnalyze.cs" />
+    <Compile Include="3_Class\ExternalMapObj.cs" />
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="1_UI\10_Window\MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="1_UI\11_Page\PageSolarPotentialParams.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageReflectionParams.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageJudgeParams.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageCommonProgress.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageCommonExecute.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageCommonComplete.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageAnalyzeDataIO.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageAnalyzeSelectArea.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="1_UI\11_Page\PageAggregateDataIO.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="2_Manager\CommonManager.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="Assets\initFile_Aggregate.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\initFile_Analyze.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\KMLTemplate.kml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\aggregate.png" />
+    <Resource Include="Resources\analyze.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Assets\History\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\roof_degree.png" />
+    <Resource Include="Resources\reflection_range.png" />
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarPower.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarPower_day.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarPower_month.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarPower_summer.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarPower_winter.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarRad.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarRad_day.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarRad_month.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarRad_summer.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ColorSettings\Template\colorSetting_SolarRad_winter.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\CityGMLNameSpaces.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\KMLPlacemark.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Content Include="Assets\Map\ol.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Map\ol.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Resources\analyze_correct_deg.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

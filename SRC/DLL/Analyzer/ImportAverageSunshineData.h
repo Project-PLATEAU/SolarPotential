@@ -2,7 +2,7 @@
 #include "DataImport.h"
 #include "../../LIB/CommonUtil/CTime.h"
 
-// –ˆŒ‚Ì•½‹Ï“úÆŠÔ
+// •½‹Ï“úÆŠÔ
 
 class CImportAverageSunshineData : public CDataImport
 {

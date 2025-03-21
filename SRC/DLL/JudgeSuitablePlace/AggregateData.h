@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../../LIB/CommonUtil/CGeoUtil.h"
+#include "../../LIB/CommonUtil/CPoint2DPolygon.h"
 
 #include <string>
 #include <vector>
@@ -47,6 +48,34 @@ typedef struct bldgList
 
 } BLDGLIST;
 
+// 土地
+typedef struct landsurface
+{
+	double dLandHeight;                  // 高さ
+	double dSolorRadiation;              // 予測日射量(kWh/m2)
+	double dFloodDepth;                  // 洪水浸水想定の浸水深(メートル)
+	double dTsunamiHeight;               // 津波浸水想定(メートル)
+	bool bLandslideArea;                 // 土砂災害リスク区域(範囲内true)
+
+} LANDSURFACE;
+
+// エリア
+typedef struct areaData
+{
+	std::string areaID;                         // エリアID
+	std::string areaName;                       // エリア名称
+	std::vector<CPoint2D> pos2dList;            // エリア構成点リスト
+	std::vector<CPoint2DPolygon> polygons;      // 分割した凸ポリゴンリスト
+
+	// エリア内の各データ
+	std::vector<BLDGLIST> buildList;            // 解析エリア周辺の建物リスト
+	LANDSURFACE landData;                       // 土地データ
+
+} AREADATA;
+
 
 // vector<BLDGLIST>を取得する
 extern "C" __declspec(dllimport) void* __cdecl GetAllList();
+// vector<AREADATA>を取得する
+extern "C" __declspec(dllimport) void* __cdecl GetAllAreaList();
+

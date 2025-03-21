@@ -66,13 +66,32 @@ void CResultJudgment::Prioritization()
 	}
 }
 
-ePriority CResultJudgment::GetPriority(std::string strBuildingId)
+ePriority CResultJudgment::GetPriority(std::string strId)
 {
 	for (const auto& result : m_result)
 	{
-		if (result.m_strBuildingId == strBuildingId)
+		switch (m_eTarget)
 		{
-			return result.m_ePriority;
+		case eTarget::TARGET_BUILD:
+		{
+			if (result.m_strBuildingId == strId)
+			{
+				return result.m_ePriority;
+			}
+			break;
+		}
+
+		case eTarget::TARGET_LAND:
+		{
+			if (result.m_strAreaId == strId)
+			{
+				return result.m_ePriority;
+			}
+			break;
+		}
+
+		default:
+			break;
 		}
 	}
 	return ePriority::PRIORITY_RANK_UNKNOWN;
@@ -89,7 +108,7 @@ bool CResultJudgment::OutputResultCSV(const std::wstring& filepath)
 	}
 
 	// ヘッダ部
-	if (!file.WriteLineA("メッシュID,建物ID,優先度,\
+	if (!file.WriteLineA("エリアID,メッシュID,建物ID,優先度,\
 判定条件1_1_1,判定条件1_1_2,判定条件1_2,判定条件1_3,\
 判定条件2_1,判定条件2_2,判定条件2_3,判定条件2_4,\
 判定条件3_1,判定条件3_2,判定条件3_3"))
@@ -100,7 +119,8 @@ bool CResultJudgment::OutputResultCSV(const std::wstring& filepath)
 	// データ部
 	for (const auto& result : m_result)
 	{
-		std::string strLine = CStringEx::Format("%d,%s,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
+		std::string strLine = CStringEx::Format("%s,%d,%s,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
+				result.m_strAreaId.c_str(),
 				result.m_iMeshId,
 				result.m_strBuildingId.c_str(),
 				(int)result.m_ePriority,

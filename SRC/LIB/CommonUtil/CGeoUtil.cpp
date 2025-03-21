@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CGeoUtil.h"
+#include "CPoint2DPolygon.h"
 #include <cmath>
 #include <random>
 
@@ -455,4 +456,126 @@ bool CGeoUtil::MeshIDToLatLon(const std::string& meshid, double& lat, double& lo
 
 	return true;
 }
+
+// 2次元空間での内外判定とZ値取得
+bool CTriangle::CalcZBySpecEps(const CVector3D& inputPoint, double& dz, double dEps)
+{
+	std::vector<CPoint2D> point2DList{};
+	point2DList.push_back(CPoint2D(posTriangle[0].x, posTriangle[0].y));
+	point2DList.push_back(CPoint2D(posTriangle[1].x, posTriangle[1].y));
+	point2DList.push_back(CPoint2D(posTriangle[2].x, posTriangle[2].y));
+	CPoint2D * pt2D = &point2DList[0];
+
+	// 内外判定
+	if (!CGeoUtil::IsPointInPolygon(CPoint2D(inputPoint.x, inputPoint.y), posTriangle.size(), pt2D))
+	{
+		return false;
+	}
+
+	CPoint2DPolygon poly2d;
+	poly2d.push_back(CPoint2D(posTriangle[0].x, posTriangle[0].y));
+	poly2d.push_back(CPoint2D(posTriangle[1].x, posTriangle[1].y));
+	poly2d.push_back(CPoint2D(posTriangle[2].x, posTriangle[2].y));
+	CPointBase vec[3];
+	if (poly2d.Clockwise())
+	{
+		vec[0] = posTriangle[2];
+		vec[1] = posTriangle[1];
+		vec[2] = posTriangle[0];
+		poly2d.Reverse();
+	}
+	else
+	{
+		vec[0] = posTriangle[0];
+		vec[1] = posTriangle[1];
+		vec[2] = posTriangle[2];
+	}
+	CVector3D vec01(vec[1], vec[0]);
+	CVector3D vec02(vec[2], vec[0]);
+
+	// 平面法線
+	// ベクトルを外積
+	CVector3D normal;
+	CGeoUtil::OuterProduct(vec01, vec02, normal);
+
+	// 面積
+	double dArea = normal.Length();
+	if (fabs(dArea) < dEps * 2.0)
+	{
+		return false;
+	}
+
+	double crsY[2], crsZ[2];
+	int crsCnt = 0;
+	for (int ic = 0; ic < 3; ic++)
+	{
+		// 頂点間の2次元ベクトル
+		CVector2D vecXY(poly2d[(ic + 1) % 3], poly2d[ic]);
+		double dLenTotal = vecXY.Length();
+
+		if (fabs(vecXY.x) < dEps)
+		{	// 線分がY軸と平行な場合
+			CPoint2D pt(inputPoint.x, inputPoint.y);
+			double dLen0pt = CVector2D(poly2d[ic], pt).Length();
+			double dLen1pt = CVector2D(poly2d[(ic + 1) % 3], pt).Length();
+			if (fabs((dLen0pt + dLen1pt) - dLenTotal) < dEps)
+			{	// 線分上に交点がある場合、比でZを求める
+				dz = vec[ic].z + (vec[(ic + 1) % 3].z - vec[ic].z) * (dLen0pt / dLenTotal);
+				return true;
+			}
+		}
+		else
+		{
+			// 線分がY軸と平行でない場合
+			// X固定で三角形の線分との交点取得
+			double dYonSeg = (vecXY.y / vecXY.x * (inputPoint.x - poly2d[ic].x) + poly2d[ic].y);
+			CPoint2D pt(inputPoint.x, dYonSeg);
+			// 頂点とptの2次元距離
+			double dLen0pt = CVector2D(poly2d[ic], pt).Length();
+			double dLen1pt = CVector2D(poly2d[(ic + 1) % 3], pt).Length();
+			if (fabs((dLen0pt + dLen1pt) - dLenTotal) < dEps)
+			{
+				if (dLen0pt >= dEps && dLen1pt >= dEps)
+				{
+					// 線分上に交点がある場合、比でZを求める
+					crsY[crsCnt] = dYonSeg;
+					crsZ[crsCnt] = vec[ic].z + (vec[(ic + 1) % 3].z - vec[ic].z) * (dLen0pt / dLenTotal);
+					crsCnt++;
+					if (2 == crsCnt)
+					{
+						// 求める点と交点の2次元距離
+						double dLenInputCrs = fabs(crsY[0] - inputPoint.y);
+						double dLenCrsCrs = fabs(crsY[0] - crsY[1]);
+						// 比でZを求める
+						dz = crsZ[0] + (crsZ[1] - crsZ[0]) * (dLenInputCrs / dLenCrsCrs);
+						return true;
+					}
+				}
+				else if (dLen0pt < dEps)
+				{	// dLen0pt≒0 頂点上に交点
+					if (fabs(posTriangle[ic].y - inputPoint.y) < dEps)
+					{	// 頂点と一致
+						dz = posTriangle[ic].z;
+						return true;
+					}
+					CPoint2D& v1 = poly2d[(ic + 1) % 3];
+					CPoint2D& v2 = poly2d[(ic + 2) % 3];
+					double z2 = posTriangle[(ic + 2) % 3].z;
+					double z1 = posTriangle[(ic + 1) % 3].z;
+					// 2頂点を結ぶ線分上のY値
+					double dYtmp = v1.y + (v2.y - v1.y) * (posTriangle[ic].x - v1.x) / (v2.x - v1.x);
+					CPoint2D v12(posTriangle[ic].x, dYtmp);
+					// 2頂点を結ぶ線分上のZ値
+					double dZtmp = z1 + (z2 - z1) * CVector2D(v12, v1).Length() / CVector2D(v2, v1).Length();
+					dz = posTriangle[ic].z + (dZtmp - posTriangle[ic].x) * (inputPoint.y - posTriangle[ic].y) / (dYtmp - posTriangle[ic].y);
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+
+}
+
 #pragma endregion

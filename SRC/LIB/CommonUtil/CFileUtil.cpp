@@ -35,6 +35,12 @@ void CFileUtil::CreateFileList(
 		// ファイル
 		else
 		{
+			std::string filePath = file.path().string();
+			if (!strName.empty())
+			{
+				if (filePath.find(strName) == std::string::npos)	continue;
+			}
+
 			// リストに追加
 			pLstFilePath->push_back(file.path().string());
 		}
@@ -57,8 +63,14 @@ void CFileUtil::CreateFileList(
 		// ファイル
 		else
 		{
+			std::wstring filePath = file.path().wstring();
+			if (!strName.empty())
+			{
+				if (filePath.find(strName) == std::wstring::npos)	continue;
+			}
+
 			// リストに追加
-			pLstFilePath->push_back(file.path().wstring());
+			pLstFilePath->push_back(filePath);
 		}
 	}
 
@@ -70,15 +82,9 @@ std::string CFileUtil::ChangeFileNameExt(const std::string& strFileName,	//!< in
 	const std::string& strExtName		//!< in 拡張子
 )
 {
-	//exeファイルのパスを分解
-	char path[_MAX_PATH] = { '\0' };
-	char drive[_MAX_DRIVE] = { '\0' };
-	char dir[_MAX_DIR] = { '\0' };
-	char fname[_MAX_FNAME] = { '\0' };
-	char ext[_MAX_EXT] = { '\0' };
-	_splitpath_s(strFileName.c_str(), drive, dir, fname, ext);
-	_makepath_s(path, drive, dir, fname, strExtName.c_str());
-	return path;
+	std::filesystem::path path = std::filesystem::path(strFileName);
+	path.replace_extension(strExtName);
+	return path.string();
 }
 
 
@@ -88,15 +94,9 @@ std::wstring CFileUtil::ChangeFileNameExt(const std::wstring& strFileName,	//!< 
 	const std::wstring& strExtName		//!< in 拡張子
 )
 {
-	//exeファイルのパスを分解
-	WCHAR path[_MAX_PATH] = { '\0' };
-	WCHAR drive[_MAX_DRIVE] = { '\0' };
-	WCHAR dir[_MAX_DIR] = { '\0' };
-	WCHAR fname[_MAX_FNAME] = { '\0' };
-	WCHAR ext[_MAX_EXT] = { '\0' };
-	_wsplitpath_s(strFileName.c_str(), drive, dir, fname, ext);
-	_wmakepath_s(path, drive, dir, fname, strExtName.c_str());
-	return path;
+	std::filesystem::path path = std::filesystem::path(strFileName);
+	path.replace_extension(strExtName);
+	return path.wstring();
 }
 
 /*! パス(ファイル、ディレクトリ)の存在チェック

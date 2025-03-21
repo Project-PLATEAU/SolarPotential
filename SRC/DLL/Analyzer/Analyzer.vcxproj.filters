@@ -154,14 +154,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="colorSetting_SolarPower.txt">
-      <Filter>5_設定ファイル</Filter>
-    </Text>
-    <Text Include="colorSetting_SolarRad.txt">
-      <Filter>5_設定ファイル</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="SolarPotential.ini">
       <Filter>5_設定ファイル</Filter>
     </None>

@@ -15,6 +15,7 @@ double def_GS = 1;
 CCalcSolarPower::CCalcSolarPower
 ()
 	: m_dPperUnit(0.0)
+	, m_dPanelRatio(0.0)
 {
 
 }
@@ -26,41 +27,50 @@ CCalcSolarPower::~CCalcSolarPower(void)
 
 
 // 年間予測発電量(EPY)の算出 [kWh/年]
-bool CCalcSolarPower::CalcEPY(CBuildingDataMap& dataMap)
+bool CCalcSolarPower::CalcEPY(CPotentialData& result)
 {
 	double EPY = 0.0;
 
-	for (auto& val1 : dataMap)
+	// メッシュごとの発電量
+	for (auto& surface : result.mapSurface)
 	{
-		CBuildingData& build = val1.second;
+		CSurfaceData& surfaceData = surface.second;
 
-		int meshCount = 0;
-		for (auto& val2 : build.mapRoofSurface)
+		for (auto& mesh : surfaceData.vecMeshData)
 		{
-			CRoofSurfaceData& surface = val2.second;
-			meshCount += (int)surface.vecRoofMesh.size();
+			// 設置可能システム容量(P)
+			// パネル面積＊単位面積当たり容量
+			double P0 = 1.0 * m_dPperUnit;	// 1m2あたり
+
+			// 年間予測日射量(HAY)
+			double HAY0 = mesh.solarRadiationUnit;
+
+			// 設置可能システム容量(P) ＊ 年間予測日射量(HAY) ＊ 基本設計係数(KPY) ＊ １ ／ 標準試験条件における日射強度(GS)
+			EPY = P0 * HAY0 * def_KPY * 1 / def_GS;
+
+			// 発電量
+			mesh.solarPowerUnit = EPY;
 		}
-
-		double panelArea = meshCount * 1.0;		// 1mメッシュ数 = 面積(m2)
-		build.panelArea = panelArea;
-		
-		// 設置可能システム容量(P)
-		// パネル面積＊単位面積当たり容量
-		double P = panelArea * m_dPperUnit;
-
-		// 年間予測日射量(HAY)
-		double HAY = build.solarRadiationUnit;
-
-		// 設置可能システム容量(P) ＊ 年間予測日射量(HAY) ＊ 基本設計係数(KPY) ＊ １ ／ 標準試験条件における日射強度(GS)
-		EPY = P * HAY * def_KPY * 1 / def_GS;
-
-		// 建物ごとに算出した発電量を適用
-		build.solarPower = EPY;
-
-		// 1m2あたりの発電量
-		build.solarPowerUnit = EPY / panelArea;
-
 	}
+
+	//// 建物・土地ごとの発電量
+	//result.panelArea = result.GetAllArea() * m_dPanelRatio;
+
+	// 設置可能システム容量(P)
+	// パネル面積＊単位面積当たり容量
+	double P = result.panelArea * m_dPperUnit;
+
+	// 年間予測日射量(HAY)
+	double HAY = result.solarRadiationUnit;
+
+	// 設置可能システム容量(P) ＊ 年間予測日射量(HAY) ＊ 基本設計係数(KPY) ＊ １ ／ 標準試験条件における日射強度(GS)
+	EPY = P * HAY * def_KPY * 1 / def_GS;
+
+	// 建物ごとに算出した発電量を適用
+	result.solarPower = EPY;
+
+	// 1m2あたりの発電量
+	result.solarPowerUnit = EPY / result.panelArea;
 
 	return true;
 

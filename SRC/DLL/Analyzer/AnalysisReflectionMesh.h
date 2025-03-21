@@ -31,4 +31,16 @@ public:
 
 	// 入射屋根メッシュ
 	TargetRoof reflectionRoof;
+
 };
+
+//
+//// 反射シミュレーション
+//// エリアごとの反射シミュレーションデータ
+//class CAnalysisReflectionArea
+//{
+//public:
+//	std::string areaID;
+//	CAnalysisReflection refList;
+//
+//};

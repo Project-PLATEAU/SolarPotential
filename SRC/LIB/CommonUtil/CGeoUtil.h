@@ -3,6 +3,7 @@
 #include <vector>
 #include <cassert>
 #include <string>
+#include "CEpsUtil.h"
 
 const double _PI = 3.141592653589793;
 const double _COEF_RAD_TO_DEG = 180.0 / _PI;
@@ -96,6 +97,11 @@ public:
 		x = x0; y = y0;
 	}
 
+	bool operator ==  (const CPoint2D& p) const {
+		return(CEpsUtil::Equal(x, p.x) &&
+			CEpsUtil::Equal(y, p.y));
+	}
+
 };
 
 // ベクトル(2d)
@@ -113,6 +119,9 @@ public:
 	CVector2D  operator - (const CVector2D& v) const { return CVector2D(x - v.x, y - v.y); }
 	CVector2D  operator * (double a) const { return CVector2D(x * a, y * a); }
 	CVector2D  operator *=(double a) { x *= a; y *= a; return *this; }
+	CVector2D& operator /=(double a) { assert(!(abs(a) < DBL_EPSILON)); x /= a; y /= a; return *this; }
+	CVector2D& operator +=(const CVector2D& a) { x += a.x; y += a.y; return *this; }
+	CVector2D& operator -=(const CVector2D& a) { x -= a.x; y -= a.y; return *this; }
 
 	// Pos2からPos1方向へのベクトルで初期化
 	CVector2D(const CPoint2D& p1,	//!< in Pos1
@@ -148,6 +157,26 @@ public:
 		return(tmp.Distance(x2, y2));
 	}
 
+	/*! 与えられたベクトルとの外積を返す（法線）
+	@note	double[2]配列によるstatic呼び出し用
+			dout = dv1^dv2
+	*/
+	static double CrsP(const CVector2D& dv1,	//!< in 入力ベクトル１
+		const CVector2D& dv2	//!< in 入力ベクトル２
+	)
+	{
+		return dv1.x * dv2.y - dv1.y * dv2.x;
+	}
+
+	/*! 2ベクトルのなす平行四辺形の面積
+	@return 外積
+	@note
+	*/
+	double CrsP(const CVector2D& v	//!< in 外積をとるベクトル
+	) const {
+		return CrsP(*this, v);
+	}
+
 };
 
 // スカラーとベクトルの掛け算
@@ -179,6 +208,10 @@ public:
 	{
 		posTriangle.clear();
 	}
+
+	// 2次元空間での三角形の内外判定とZ値取得
+	bool CalcZBySpecEps(const CVector3D& inputPoint, double& dz, double dEps = 1.0e-8);
+
 };
 
 

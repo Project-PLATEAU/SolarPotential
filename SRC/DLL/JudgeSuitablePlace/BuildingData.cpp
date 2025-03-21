@@ -136,9 +136,10 @@ bool CBuildingData::ReadAzimuthCSV(std::wstring strFilePath)
 			}
 			else
 			{	// 2s–ÚˆÈ~
-				std::string strMeshID = CStringEx::ToString(aryData[0]);
-				std::string strBldID = CStringEx::ToString(aryData[1]);
-				int iCount = stoi(aryData[2]);
+				std::string strAreaID = CStringEx::ToString(aryData[0]);
+				std::string strMeshID = CStringEx::ToString(aryData[1]);
+				std::string strBldID = CStringEx::ToString(aryData[2]);
+				int iCount = stoi(aryData[3]);
 				for (int i = 0; i < GetBuildingSize(); i++)
 				{   // Œš•¨ID‚ÅŒŸõ
 					CBuilding* pBuilding = GetBuildingAt(i);
@@ -147,7 +148,7 @@ bool CBuildingData::ReadAzimuthCSV(std::wstring strFilePath)
 						// ‰Šú‰»
 						pBuilding->vecRoofAzimuth.clear();
 						// ‰®ª–Ê•ûˆÊŠp‚ğŠi”[‚·‚é
-						for (int j = 3; j < aryData.size(); j++)
+						for (int j = 4; j < aryData.size(); j++)
 						{
 							std::wstring str = aryData[j];
 							if (str == L"") break;

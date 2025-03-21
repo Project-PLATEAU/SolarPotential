@@ -2,6 +2,8 @@
 #include <math.h>
 #include <random>
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 #include "CalcSolarPotentialMng.h"
 #include "CalcSolarRadiation.h"
 #include "CalcSolarPower.h"
@@ -10,6 +12,20 @@
 #include "../../LIB/CommonUtil/ReadINIParam.h"
 #include "../../LIB/CommonUtil/CImageUtil.h"
 #include "../../LIB/CommonUtil/CEpsUtil.h"
+#include "../../LIB/CommonUtil/ExitCode.h"
+#include "../../LIB/CommonUtil/CPoint2DPolygon.h"
+#include "shapefil.h"
+#include "AnalyzeData.h"
+
+#ifdef CHRONO
+#include <chrono>
+#endif
+
+#ifdef _DEBUG
+#pragma comment(lib,"shapelib_i.lib")
+#else
+#pragma comment(lib,"shapelib_i.lib")
+#endif
 
 #define DEF_IMG_NODATA -9999
 #define DEF_EPSGCODE 6675
@@ -19,7 +35,7 @@ CCalcSolarPotentialMng::CCalcSolarPotentialMng
 	CImportPossibleSunshineData* pSunshineData,
 	CImportAverageSunshineData* pPointData,
 	CImportMetpvData* pMetpvData,
-	UIParam* pParam,
+	CUIParam* pParam,
 	const int& iYear
 )
 	: m_pSunshineData(pSunshineData)
@@ -27,11 +43,11 @@ CCalcSolarPotentialMng::CCalcSolarPotentialMng
 	, m_pMetpvData(pMetpvData)
 	, m_pUIParam(pParam)
 	, m_pRadiationData(NULL)
-	, m_pvecAllBuildList(NULL)
 	, m_pmapResultData(NULL)
 	, m_iYear(iYear)
 	, m_strCancelFilePath(L"")
-	, m_pvecAllDemList(NULL)
+	, m_pvecAllAreaList(NULL)
+	, m_isCancel(false)
 {
 
 }
@@ -45,16 +61,43 @@ CCalcSolarPotentialMng::~CCalcSolarPotentialMng(void)
 void CCalcSolarPotentialMng::initialize()
 {
 	// データ取得
-	m_pvecAllBuildList = reinterpret_cast<std::vector<BLDGLIST>*>(GetAllList());
-	m_pvecAllDemList = reinterpret_cast<std::vector<DEMLIST>*>(GetAllDemList());
+	m_pvecAllAreaList = reinterpret_cast<std::vector<AREADATA>*>(GetAllAreaList());
 
 	m_pmapResultData = new CResultDataMap;
 	m_pRadiationData = new CAnalysisRadiationCommon;
 
-	// キャンセル
-	std::wstring strDir = GetFUtil()->GetParentDir(m_pUIParam->strOutputDirPath);
+	// キャンセルファイル
+	std::wstring strDir = GetFUtil()->GetParentDir(GetFUtil()->GetParentDir(m_pUIParam->strOutputDirPath));
 	m_strCancelFilePath = GetFUtil()->Combine(strDir, CStringEx::ToWString(CANCELFILE));
 
+	// 解析期間を設定
+	switch (m_pUIParam->eAnalyzeDate)
+	{
+	case eDateType::OneDay:
+		m_dateStart = m_dateEnd = CTime(GetYear(), m_pUIParam->nMonth, m_pUIParam->nDay, 0, 0, 0);
+		break;
+
+	case eDateType::OneMonth:
+		m_dateStart = CTime(GetYear(), m_pUIParam->nMonth, 1, 0, 0, 0);
+		m_dateEnd = CTime(GetYear(), m_pUIParam->nMonth, CTime::GetDayNum(m_pUIParam->nMonth), 23, 59, 59);
+		break;
+
+	case eDateType::Summer:
+		m_dateStart = m_dateEnd = CTime::GetSummerSolstice(GetYear());
+		break;
+
+	case eDateType::Winter:
+		m_dateStart = m_dateEnd = CTime::GetWinterSolstice(GetYear());
+		break;
+
+	case eDateType::Year:
+		m_dateStart = CTime(GetYear(), 1, 1, 0, 0, 0);
+		m_dateEnd = CTime(GetYear(), 12, 31, 23, 59, 59);
+		break;
+
+	default:
+		break;
+	}
 }
 
 // 解放処理
@@ -68,6 +111,11 @@ void CCalcSolarPotentialMng::finalize()
 
 	if (m_pmapResultData)
 	{
+		for (auto& [areaId, resultdata] : *m_pmapResultData)
+		{
+			delete resultdata.pBuildMap;
+			delete resultdata.pLandData;
+		}
 		m_pmapResultData->clear();
 		delete m_pmapResultData;
 		m_pmapResultData = NULL;
@@ -80,224 +128,393 @@ bool CCalcSolarPotentialMng::AnalyzeSolarPotential()
 {
 	setlocale(LC_ALL, "");
 
-	if (!m_pSunshineData) return false;
-	if (!m_pPointData) return false;
-	if (!m_pMetpvData) return false;
-	if (!m_pUIParam) return false;
+#ifdef CHRONO
+	std::filesystem::path p = std::filesystem::path(m_pUIParam->strOutputDirPath) / "time.log";
+	m_ofs.open(p);
+
+	m_ofs << "AnalyzeSolarPotential Start " << std::endl;
+	auto astart = std::chrono::system_clock::now();
+	chrono::system_clock::time_point start, end;
+	double time;
+#endif
+
+	assert(m_pUIParam);
+	assert(m_pSunshineData);
+	assert(m_pPointData);
+	if (m_pUIParam->pInputData->strSnowDepthData != "")
+	{
+		assert(m_pMetpvData);
+	}
 
 	// 初期化
 	initialize();
-	if (!m_pRadiationData) return false;
-	if (!m_pvecAllBuildList) return false;
-	if (m_pUIParam->bEnableDEMData && !m_pvecAllDemList) return false;
+	assert(m_pRadiationData);
+	assert(m_pvecAllAreaList);
 
 	bool ret = false;
 
-	int dataCount = (int)m_pvecAllBuildList->size();
-	for (int ic = 0; ic < dataCount; ic++)
+	// 月ごとの日照率を計算
+	calcMonthlyRate();
+
+	int dataCount = (int)m_pvecAllAreaList->size();
+	for (auto& areaData : *m_pvecAllAreaList)
 	{
-		if (IsCancel())
+		if (IsCancel())	break;
+
+		// 処理中エリア
+		m_targetArea = &areaData;
+
+		CResultData dataMap;
+
+		// 建物の解析
+		if (areaData.analyzeBuild)
 		{
-			finalize();
-			return false;
+			// 日射量・発電量を計算
+			AnalyzeBuild(areaData, dataMap.pBuildMap);
+			if (IsCancel())	break;
+		}
+		// 建物の結果を出力
+#ifdef CHRONO
+		m_ofs << "outputAreaBuildResult Start " << std::endl;
+		start = std::chrono::system_clock::now();
+#endif
+		if (dataMap.pBuildMap)
+		{
+			(*m_pmapResultData)[areaData.areaID].pBuildMap = *&dataMap.pBuildMap;
+			ret = outputAreaBuildResult(areaData);
+		}
+#ifdef CHRONO
+		end = std::chrono::system_clock::now();
+		time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+		m_ofs << "outputAreaBuildResult Time: " << time << " sec" << std::endl;
+#endif
+
+		// 土地の解析
+		if (areaData.analyzeLand)
+		{
+			// 日射量・発電量を計算
+			AnalyzeLand(areaData, dataMap.pLandData);
+			if (IsCancel())	break;
 		}
 
-		const BLDGLIST& bldList = m_pvecAllBuildList->at(ic);
-
-		// 建物ごとの結果データ
-		CBuildingDataMap buildDataMap;
-
-		// 傾斜角・方位角の算出(対象データ取得)
-		calcRoofAspect(bldList, buildDataMap);
-		if (buildDataMap.empty())	continue;
-
-		// 日射量推計
-		ret = calcSolarRadiation(bldList.meshID, bldList.bbMinX, bldList.bbMinY, bldList.bbMaxX, bldList.bbMaxY, buildDataMap);
-		if (!ret)
+		// 土地の結果を出力
+#ifdef CHRONO
+		m_ofs << "outputAreaLandResult Start " << std::endl;
+		start = std::chrono::system_clock::now();
+#endif
+		if (dataMap.pLandData)
 		{
-			finalize();
-			return false;
+			(*m_pmapResultData)[areaData.areaID].pLandData = *&dataMap.pLandData;
+			ret = outputAreaLandResult(areaData);
 		}
+#ifdef CHRONO
+		end = std::chrono::system_clock::now();
+		time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+		m_ofs << "outputAreaLandResult Time: " << time << " sec" << std::endl;
+#endif
 
-		// 発電量推計
-		ret &= calcSolarPower(bldList.meshID, bldList.bbMinX, bldList.bbMinY, bldList.bbMaxX, bldList.bbMaxY, buildDataMap);
-		if (!ret)
-		{
-			finalize();
-			return false;
-		}
-
-		(*m_pmapResultData)[bldList.meshID] = buildDataMap;
+		if (!ret)	break;
 
 	}
 
-	if (m_pmapResultData->empty())	ret = false;	// 対象データが無い
-
-	if (ret && !IsCancel())
+	if (ret)
 	{
-		// 出力処理(全データ)
-		ret &= outputAzimuthDataCSV();		// 適地判定用の中間ファイル生成(CSV)
-		ret &= outputResultCSV();			// 年間予測日射量・発電量を出力
+		// 適地判定用の中間ファイル生成(CSV)
+		ret &= outputAzimuthDataCSV();
 
 		// 凡例出力
 		ret &= outputLegendImage();
+
+		// 予測日射量・発電量
+#ifdef CHRONO
+		m_ofs << "outputAllAreaResultCSV Start " << std::endl;
+		start = std::chrono::system_clock::now();
+#endif
+		ret &= outputAllAreaResultCSV();
+#ifdef CHRONO
+		end = std::chrono::system_clock::now();
+		time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+		m_ofs << "outputAllAreaResultCSV Time: " << time << " sec" << std::endl;
+#endif
+	}
+
+	if (IsCancel())
+	{
+		m_eExitCode = eExitCode::Cancel;
+		ret = false;
+	}
+	else if (!ret)
+	{
+		m_eExitCode = eExitCode::Error;
 	}
 
 	// 解放処理
 	finalize();
 
+#ifdef CHRONO
+	auto aend = std::chrono::system_clock::now();
+	time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(aend - astart).count() * 0.001);
+	m_ofs << "AnalyzeSolarPotential Time: " << time << " sec" << std::endl;
+	m_ofs.close();
+#endif
+
 	return ret;
 }
 
-// 日射量推計(3次メッシュごと)
-bool CCalcSolarPotentialMng::calcSolarRadiation
-(
-	const std::string&	Lv3meshId,			// 3次メッシュID
-	double bbMinX,
-	double bbMinY,
-	double bbMaxX,
-	double bbMaxY,
-	CBuildingDataMap&	bldDataMap			// 対象の建物データリスト
-)
+/// <summary>
+/// 建物解析
+/// </summary>
+/// <param name="pvecAllBuildList">建物リスト</param>
+/// <param name="resultDataMap">解析結果</param>
+void CCalcSolarPotentialMng::AnalyzeBuild(const AREADATA& areaData, CBuildListDataMap*& resultDataMap)
 {
-	if (bldDataMap.empty())		return false;
+#ifdef CHRONO
+	m_ofs << "AnalyzeBuild Start " << std::endl;
+	auto astart = std::chrono::system_clock::now();
+	std::chrono::system_clock::time_point start, end;
+	double time;
+#endif
 
-	if (IsCancel())	return false;
+	if (IsCancel())
+	{
+		m_eExitCode = eExitCode::Cancel;
+		return;
+	}
+
+	if (areaData.targetBuildings.empty())	return;
 
 	bool ret = false;
 
+	resultDataMap = new CBuildListDataMap();
+
+	for (const auto& [meshId, targetBuildings] : areaData.targetBuildings)
+	{
+		// 傾斜角・方位角の算出
+		CPotentialDataMap dataMap;
+		calcRoofAspect(targetBuildings, dataMap);
+		if (!dataMap.empty())
+		{
+			(*resultDataMap)[meshId] = *&dataMap;
+		}
+	}
+	if (resultDataMap->empty())
+	{
+		delete resultDataMap;
+		resultDataMap = NULL;
+		return;
+	}
+
 	CCalcSolarRadiation calcSolarRad(this);
-
-	// 3次メッシュID
-	std::wstring meshId = CStringEx::ToWString(Lv3meshId);
-
-	// 中間CSVの出力フォルダを作成
-	std::wstring strOutDir = m_pUIParam->strOutputDirPath;	// 出力フォルダ
-	if (!GetFUtil()->IsExistPath(strOutDir))
-	{
-		if (CreateDirectory(strOutDir.c_str(), NULL) == FALSE)
-		{
-			return false;
-		}
-	}
-	// 3次メッシュIDごとにサブフォルダを作成
-	std::wstring strOutSubDir = GetFUtil()->Combine(strOutDir, CStringEx::Format(L"%s", meshId.c_str()));
-	if (!GetFUtil()->IsExistPath(strOutSubDir))
-	{
-		if (CreateDirectory(strOutSubDir.c_str(), NULL) == FALSE)
-		{
-			return false;
-		}
-	}
-
-	// 中間CSVファイルパス
-	std::wstring strCsvPath;
-
-	// 月ごとの日照率を計算
-	calcMonthlyRate();
-
-	// 日射量の算出
-	{
-		// 太陽軌道をもとにした日射量の算出
-		strCsvPath = GetFUtil()->Combine(strOutSubDir, L"晴天曇天時日射量_日別_角度補正.csv");
-		ret = calcSolarRad.Exec(bldDataMap, true, strCsvPath, Lv3meshId);
-		if (!ret)	return false;
-
-		// 日照率による補正	
-		ret &= calcSolarRad.ModifySunRate(bldDataMap, strCsvPath);
-		ret &= outputMonthlyRadCSV(Lv3meshId, bldDataMap, strOutSubDir);
-		if (!ret)	return false;
-	}
-
-	// 屋根面別年間日射量
-	ret &= calcSolarRad.CalcBuildSolarRadiation(bldDataMap, strOutSubDir);
-	ret &= outputRoofRadCSV(Lv3meshId, bldDataMap, strOutSubDir);
-
-	// 日射量テクスチャ出力
-	std::wstring strFileName = CStringEx::Format(L"日射量%s.tif", meshId.c_str());
-	std::wstring strTiffPath = GetFUtil()->Combine(strOutSubDir, strFileName);
-	ret &= outputImage(strTiffPath, Lv3meshId, bbMinX, bbMinY, bbMaxX, bbMaxY, bldDataMap, eOutputImageTarget::SOLAR_RAD);
-
-	if (!ret)
-	{
-		return false;
-	}
-	else
-	{
-		// 出力TIFF画像をコピー
-		std::wstring strCopyDir = GetFUtil()->Combine(strOutDir, L"日射量画像");
-		if (!GetFUtil()->IsExistPath(strCopyDir))
-		{
-			if (CreateDirectory(strCopyDir.c_str(), NULL) == FALSE)
-			{
-				return false;
-			}
-		}
-		std::wstring dstPath = GetFUtil()->Combine(strCopyDir, strFileName);
-		CopyFile(strTiffPath.c_str(), dstPath.c_str(), FALSE);
-		std::wstring strWldPath = GetFUtil()->ChangeFileNameExt(strTiffPath, L".tfw");
-		std::wstring dstPath2 = GetFUtil()->ChangeFileNameExt(dstPath, L".tfw");
-		CopyFile(strWldPath.c_str(), dstPath2.c_str(), FALSE);
-	}
-
-	return ret;
-
-}
-
-// 発電量推計
-bool CCalcSolarPotentialMng::calcSolarPower
-(
-	const std::string& Lv3meshId,			// 3次メッシュID
-	double bbMinX,
-	double bbMinY,
-	double bbMaxX,
-	double bbMaxY,
-	CBuildingDataMap& bldDataMap			// 対象の建物データリスト
-)
-{
-	if (IsCancel())	return false;
-
 	CCalcSolarPower calcSolarPower;
-	calcSolarPower.SetPperUnit(m_pUIParam->_dAreaSolarPower);
-	bool ret = calcSolarPower.CalcEPY(bldDataMap);
 
-	// テクスチャ出力
-	// 出力フォルダを作成
-	std::wstring strOutDir = GetFUtil()->Combine(m_pUIParam->strOutputDirPath, L"発電ポテンシャル画像");
-	if (!GetFUtil()->IsExistPath(strOutDir))
+	// 発電量推計設定
+	calcSolarPower.SetPperUnit(m_pUIParam->pSolarPotentialParam->dPanelMakerSolarPower);
+	calcSolarPower.SetPanelRatio(m_pUIParam->pSolarPotentialParam->dPanelRatio);
+
+	for (auto& [meshId, resultData] : *resultDataMap)
 	{
-		if (CreateDirectory(strOutDir.c_str(), NULL) == FALSE)
+		for (auto& [buildId, data] : resultData)
 		{
-			return false;
-		}
-	}
-	// 3次メッシュID
-	std::wstring meshId = CStringEx::ToWString(Lv3meshId);
-	// テクスチャ出力
-	std::wstring strFileName = CStringEx::Format(L"%s.tif", meshId.c_str());
-	std::wstring strTiffPath = GetFUtil()->Combine(strOutDir, strFileName);
-	ret &= outputImage(strTiffPath, Lv3meshId, bbMinX, bbMinY, bbMaxX, bbMaxY, bldDataMap, eOutputImageTarget::SOLAR_POWER);
+#ifdef CHRONO
+			m_ofs << "------ Target Build: " << buildId << std::endl;
 
-	return ret;
+			// 太陽軌道をもとにした日射量の算出
+			m_ofs << "ExecBuild Start " << std::endl;
+			start = std::chrono::system_clock::now();
+			ret = calcSolarRad.ExecBuild(data, m_dateStart, m_dateEnd);
+			end = std::chrono::system_clock::now();
+			time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+			m_ofs << "ExecBuild Time: " << time << " sec" << std::endl;
+			if (!ret)	break;
+
+			// 日照率による補正
+			m_ofs << "ModifySunRate Start " << std::endl;
+			start = std::chrono::system_clock::now();
+			ret &= calcSolarRad.ModifySunRate(data);
+			end = std::chrono::system_clock::now();
+			time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+			m_ofs << "ModifySunRate Time: " << time << " sec" << std::endl;
+			if (!ret)	break;
+
+			// 年間日射量
+			m_ofs << "CalcAreaSolarRadiation Start " << std::endl;
+			start = std::chrono::system_clock::now();
+			ret &= calcSolarRad.CalcAreaSolarRadiation(data);
+			end = std::chrono::system_clock::now();
+			time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+			m_ofs << "CalcAreaSolarRadiation Time: " << time << " sec" << std::endl;
+			if (!ret)	break;
+
+			// 発電量推計
+			m_ofs << "CalcEPY Start " << std::endl;
+			start = std::chrono::system_clock::now();
+			ret = calcSolarPower.CalcEPY(data);
+			end = std::chrono::system_clock::now();
+			time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+			m_ofs << "CalcEPY Time: " << time << " sec" << std::endl;
+			if (!ret)	break;
+#else
+			// 太陽軌道をもとにした日射量の算出
+			ret = calcSolarRad.ExecBuild(data, m_dateStart, m_dateEnd);
+			if (!ret)	break;
+
+			// 日照率による補正
+			ret &= calcSolarRad.ModifySunRate(data);
+			if (!ret)	break;
+
+			// 年間日射量
+			ret &= calcSolarRad.CalcAreaSolarRadiation(data);
+			if (!ret)	break;
+
+			// 発電量推計
+			ret = calcSolarPower.CalcEPY(data);
+			if (!ret)	break;
+#endif
+		}
+
+		if (!ret)	break;
+	}
+
+	if (IsCancel())
+	{	// キャンセル
+		m_eExitCode = eExitCode::Cancel;
+		return;
+	}
+	else if (!ret)
+	{	// エラー
+		m_eExitCode = eExitCode::Error;
+		return;
+	}
+
+	m_eExitCode = eExitCode::Normal;
+
+	#ifdef CHRONO
+	auto aend = std::chrono::system_clock::now();
+	time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(aend - astart).count() * 0.001);
+	m_ofs << "AnalyzeBuild Time: " << time << " sec" << std::endl;
+	#endif
 }
 
+/// <summary>
+/// 土地解析
+/// </summary>
+/// <param name="pvecAllLandList"土地リスト</param>
+/// <param name="resultDataMap">解析結果</param>
+void CCalcSolarPotentialMng::AnalyzeLand(const AREADATA& areaData, CPotentialData*& resultData)
+{
+	#ifdef CHRONO
+	m_ofs << "AnalyzeLand Start " << std::endl;
+	auto astart = std::chrono::system_clock::now();
+	std::chrono::system_clock::time_point start, end;
+	double time;
+	#endif
+
+	resultData = new CPotentialData();
+
+	// 傾斜角・方位角の算出(対象データ取得)
+	calcLandAspect(areaData, *resultData);
+	if (resultData->mapSurface.empty())
+	{
+		resultData = NULL;
+		return;
+	}
+
+	CCalcSolarRadiation calcSolarRad(this);
+	CCalcSolarPower calcSolarPower;
+
+#ifdef CHRONO
+	// 太陽軌道をもとにした日射量の算出
+	m_ofs << "ExecLand Start " << std::endl;
+	start = std::chrono::system_clock::now();
+	bool ret = calcSolarRad.ExecLand(*resultData, m_dateStart, m_dateEnd);
+	end = std::chrono::system_clock::now();
+	time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+	m_ofs << "ExecLand Time: " << time << " sec" << std::endl;
+
+	// 日照率による補正
+	m_ofs << "ModifySunRate Start " << std::endl;
+	start = std::chrono::system_clock::now();
+	ret &= calcSolarRad.ModifySunRate(*resultData);
+	end = std::chrono::system_clock::now();
+	time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+	m_ofs << "ModifySunRate Time: " << time << " sec" << std::endl;
+
+	// 年間日射量
+	m_ofs << "CalcAreaSolarRadiation Start " << std::endl;
+	start = std::chrono::system_clock::now();
+	ret &= calcSolarRad.CalcAreaSolarRadiation(*resultData);
+	end = std::chrono::system_clock::now();
+	time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+	m_ofs << "CalcAreaSolarRadiation Time: " << time << " sec" << std::endl;
+#else
+	// 太陽軌道をもとにした日射量の算出
+	bool ret = calcSolarRad.ExecLand(*resultData, m_dateStart, m_dateEnd);
+
+	// 日照率による補正
+	ret &= calcSolarRad.ModifySunRate(*resultData);
+
+	// 年間日射量
+	ret &= calcSolarRad.CalcAreaSolarRadiation(*resultData);
+#endif
+
+	if (IsCancel())
+	{	// キャンセル
+		m_eExitCode = eExitCode::Cancel;
+		return;
+	}
+	else if (!ret)
+	{	// エラー
+		m_eExitCode = eExitCode::Error;
+		return;
+	}
+
+	// 発電量推計
+#ifdef CHRONO
+	m_ofs << "CalcEPY Start " << std::endl;
+	start = std::chrono::system_clock::now();
+#endif
+	calcSolarPower.SetPperUnit(m_pUIParam->pSolarPotentialParam->dPanelMakerSolarPower);
+	calcSolarPower.SetPanelRatio(m_pUIParam->pSolarPotentialParam->dPanelRatio);
+	ret = calcSolarPower.CalcEPY(*resultData);
+#ifdef CHRONO
+	end = std::chrono::system_clock::now();
+	time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() * 0.001);
+	m_ofs << "CalcEPY Time: " << time << " sec" << std::endl;
+#endif
+
+	if (IsCancel())
+	{	// キャンセル
+		m_eExitCode = eExitCode::Cancel;
+		return;
+	}
+	else if (!ret)
+	{	// エラー
+		m_eExitCode = eExitCode::Error;
+		return;
+	}
+
+	m_eExitCode = eExitCode::Normal;
+
+#ifdef CHRONO
+	auto aend = std::chrono::system_clock::now();
+	time = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(aend - astart).count() * 0.001);
+	m_ofs << "AnalyzeLand Time: " << time << " sec" << std::endl;
+#endif
+}
 
 // 傾斜角と方位角を算出
-// 
-void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDataMap& bldDataMap)
+void CCalcSolarPotentialMng::calcRoofAspect(const vector<BUILDINGS*>& targetBuildings, CPotentialDataMap& bldDataMap)
 {
-	int bldsize = (int)bldList.buildingList.size();
 
-	for (int ic = 0; ic < bldsize; ic++)
-	{	// 建物
-		BUILDINGS build = bldList.buildingList[ic];
-		int surfacesize = (int)build.roofSurfaceList.size();
+	for (const auto& build : targetBuildings)
+	{
+		int surfacesize = (int)build->roofSurfaceList.size();
 		if (surfacesize == 0)
 		{
 			continue;
 		}
 
-		CBuildingData bldData;
+		CPotentialData bldData;
 
 		// 建物全体のBB
 		double bbBldMinX = DBL_MAX, bbBldMinY = DBL_MAX;
@@ -305,9 +522,8 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 
 		std::vector<CPointBase> vecAllRoofPos;
 
-		for (int jc = 0; jc < surfacesize; jc++)
+		for (const auto& surface : build->roofSurfaceList)
 		{	// 屋根面
-			ROOFSURFACES surface = build.roofSurfaceList[jc];
 			int roofsize = (int)surface.roofSurfaceList.size();
 			if (roofsize == 0)
 			{
@@ -320,7 +536,7 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 				continue;
 			}
 
-			CRoofSurfaceData roofData;
+			CSurfaceData roofData;
 
 			// 屋根面全体のBB
 			double bbRoofMinX = DBL_MAX, bbRoofMinY = DBL_MAX;
@@ -339,9 +555,8 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 
 			std::vector<CMeshData> tempRoofMesh;
 
-			for (int kc = 0; kc < roofsize; kc++)
+			for (const auto& member : surface.roofSurfaceList)
 			{	// 屋根面詳細
-				SURFACEMEMBERS member = surface.roofSurfaceList[kc];
 				int polygonsize = (int)member.posList.size();
 				if (polygonsize == 0)
 				{
@@ -375,7 +590,7 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 				CGeoUtil::CalcSlope(normal, slopeDeg);
 
 				// 傾き除外判定
-				if (slopeDeg > m_pUIParam->_elecPotential.dSlopeAngle)
+				if (slopeDeg > m_pUIParam->pSolarPotentialParam->pRoof->dSlopeDegree)
 				{
 					continue;
 				}
@@ -387,30 +602,30 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 
 				// 方位除外判定
 				bool bExclusion = false;
-				switch (m_pUIParam->_elecPotential.eAzimuth)
+				switch (m_pUIParam->pSolarPotentialParam->pRoof->eDirection)
 				{
 					case eDirections::EAST:
 					{
 						bExclusion = (abs(azDeg) < 90.0 + AZ_RANGE_JUDGE_DEGREE || abs(azDeg) > 90.0 - AZ_RANGE_JUDGE_DEGREE) ? true : false;
-						bExclusion &= (slopeDeg > m_pUIParam->_elecPotential.dAzimuthAngle) ? true : false;
+						bExclusion &= (slopeDeg > m_pUIParam->pSolarPotentialParam->pRoof->dDirectionDegree) ? true : false;
 						break;
 					}
 					case eDirections::WEST:
 					{
 						bExclusion = (abs(azDeg) < 270.0 + AZ_RANGE_JUDGE_DEGREE || abs(azDeg) > 270.0 - AZ_RANGE_JUDGE_DEGREE) ? true : false;
-						bExclusion &= (slopeDeg > m_pUIParam->_elecPotential.dAzimuthAngle) ? true : false;
+						bExclusion &= (slopeDeg > m_pUIParam->pSolarPotentialParam->pRoof->dDirectionDegree) ? true : false;
 						break;
 					}
 					case eDirections::SOUTH:
 					{
 						bExclusion = (abs(azDeg) < 180.0 + AZ_RANGE_JUDGE_DEGREE || abs(azDeg) > 180.0 - AZ_RANGE_JUDGE_DEGREE) ? true : false;
-						bExclusion &= (slopeDeg > m_pUIParam->_elecPotential.dAzimuthAngle) ? true : false;
+						bExclusion &= (slopeDeg > m_pUIParam->pSolarPotentialParam->pRoof->dDirectionDegree) ? true : false;
 						break;
 					}
 					case eDirections::NORTH:
 					{
 						bExclusion = (abs(azDeg) < 0.0 + AZ_RANGE_JUDGE_DEGREE || abs(azDeg) > 360.0 - AZ_RANGE_JUDGE_DEGREE) ? true : false;
-						bExclusion &= (slopeDeg > m_pUIParam->_elecPotential.dAzimuthAngle) ? true : false;
+						bExclusion &= (slopeDeg > m_pUIParam->pSolarPotentialParam->pRoof->dDirectionDegree) ? true : false;
 						break;
 					}
 				}
@@ -437,7 +652,7 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 			if (areaSum < _MAX_TOL) { continue; }
 
 			// 面積が小さい場合除外
-			if (areaSum < m_pUIParam->_elecPotential.dArea2D)
+			if (areaSum < m_pUIParam->pSolarPotentialParam->pRoof->dArea2D)
 			{
 				continue;
 			}
@@ -463,7 +678,7 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 			CVector3D inVec(0.0, 0.0, 1.0);
 			double dot = CGeoUtil::InnerProduct(n, inVec);
 
-			CVector3D center;		// 中心の座標
+			CVector3D roofcenter;		// 中心の座標
 			for (auto& pos : roofData.bbPos)
 			{
 				// 平面と垂線の交点
@@ -473,26 +688,29 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 				CVector3D tempPoint = p0 + t * inVec;
 				pos.z = tempPoint.z;
 				// 中心
-				center += pos;
+				roofcenter += pos;
 			}
-			center *= 0.25;
-			roofData.center = center;
+			roofcenter *= 0.25;
 
+			double dMinDist = DBL_MAX;
+			CMeshData neighborMesh;
 
 			// メッシュごとの計算結果格納用データを追加
-			for (int lc = 0; lc < meshsize; lc++)
+			for (int i = 0; i < meshsize; i++)
 			{
-				MESHPOSITION_XY meshXY = surface.meshPosList[lc];
+				MESHPOSITION_XY meshXY = surface.meshPosList[i];
 
 				CMeshData mesh;
 
 				std::vector<CVector3D> meshXYZ{
 					{meshXY.leftDownX, meshXY.leftDownY, 0.0},
 					{meshXY.leftTopX, meshXY.leftTopY, 0.0},
-					{meshXY.rightDownX, meshXY.rightDownY, 0.0},
-					{meshXY.rightTopX, meshXY.rightTopY, 0.0}
+					{meshXY.rightTopX, meshXY.rightTopY, 0.0},
+					{meshXY.rightDownX, meshXY.rightDownY, 0.0}
 				};
 				mesh.meshPos = meshXYZ;
+
+				mesh.area = abs(meshXY.rightTopX - meshXY.leftTopX) * abs(meshXY.leftTopY - meshXY.leftDownY);
 
 				CVector3D center;		// 中心の座標
 				for (auto& meshPos : mesh.meshPos)
@@ -508,12 +726,22 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 				}
 				center *= 0.25;
 
-				mesh.meshId = CStringEx::Format("%s_%d", surface.roofSurfaceId.c_str(), jc);
+				mesh.meshId = CStringEx::Format("%s_%d", surface.roofSurfaceId.c_str(), i);
 				mesh.center = center;
 				mesh.centerMod = center;
 
 				tempRoofMesh.emplace_back(mesh);
 
+				// 面中心との距離が最も近いメッシュを保持
+				double dx = roofcenter.x - center.x;
+				double dy = roofcenter.y - center.y;
+				double dz = roofcenter.z - center.z;
+				double dist = calcLength(dx, dy, dz);
+				if (dist < dMinDist)
+				{
+					neighborMesh = mesh;
+					dMinDist = dist;
+				}
 			}
 
 			// 対象メッシュがない
@@ -531,10 +759,26 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 				double azMdDeg = roofData.azDegreeAve;
 
 				// 補正
-				if (slopeMdDeg < m_pUIParam->_roofSurfaceCorrect.dLowerAngle)
+				if (slopeMdDeg < m_pUIParam->pSolarPotentialParam->pRoof->dCorrectionCaseDeg)
 				{
-					slopeMdDeg = m_pUIParam->_roofSurfaceCorrect.dTargetAngle;
-					azMdDeg = 180.0;	// 南向き
+					slopeMdDeg = m_pUIParam->pSolarPotentialParam->pRoof->dCorrectionDirectionDegree;
+					switch ((eDirections)m_pUIParam->pSolarPotentialParam->pRoof->eCorrectionDirection)
+					{
+					case eDirections::EAST:
+						azMdDeg = 90.0;
+						break;
+					case eDirections::WEST:
+						azMdDeg = 270.0;
+						break;
+					case eDirections::SOUTH:
+						azMdDeg = 180.0;
+						break;
+					case eDirections::NORTH:
+						azMdDeg = 0.0;
+						break;
+					}
+
+					dMinDist = DBL_MAX;
 
 					// メッシュ座標を補正
 					for (auto& mesh : tempRoofMesh)
@@ -548,10 +792,33 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 							CVector3D rotPos;
 							double theta = slopeMdDeg * _COEF_DEG_TO_RAD;
 
-							// 南向きに変換
-							rotPos.x = orgPos.x;
-							rotPos.y = orgPos.y * cos(theta);
-							rotPos.z = orgPos.y * sin(theta);
+							// 補正方位に変換
+							switch ((eDirections)m_pUIParam->pSolarPotentialParam->pRoof->eCorrectionDirection)
+							{
+								case eDirections::EAST:
+									rotPos.x = orgPos.x * cos(-theta);
+									rotPos.y = orgPos.y;
+									rotPos.z = orgPos.x * sin(-theta);
+									break;
+								case eDirections::WEST:
+									rotPos.x = orgPos.x * cos(theta);
+									rotPos.y = orgPos.y;
+									rotPos.z = orgPos.x * sin(theta);
+									break;
+								case eDirections::SOUTH:
+									rotPos.x = orgPos.x;
+									rotPos.y = orgPos.y * cos(theta);
+									rotPos.z = orgPos.y * sin(theta);
+									break;
+								case eDirections::NORTH:
+									rotPos.x = orgPos.x;
+									rotPos.y = orgPos.y * cos(-theta);
+									rotPos.z = orgPos.y * sin(-theta);
+									break;
+								default:
+									rotPos = orgPos;
+									break;
+							}
 
 							rotPos += mesh.center;
 							meshPos = rotPos;
@@ -561,23 +828,39 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 						}
 						centerMd *= 0.25;
 						mesh.centerMod = centerMd;
+
+						// 面中心との距離が最も近いメッシュを保持
+						double dx = roofcenter.x - centerMd.x;
+						double dy = roofcenter.y - centerMd.y;
+						double dz = roofcenter.z - centerMd.z;
+						double dist = calcLength(dx, dy, dz);
+						if (dist < dMinDist)
+						{
+							neighborMesh = mesh;
+							dMinDist = dist;
+						}
 					}
 				}
 
 				roofData.slopeModDegree = slopeMdDeg;
 				roofData.azModDegree = azMdDeg;
 
+				// 面の中心
+				roofData.center = neighborMesh.centerMod;
+
 				// メッシュリストを追加
-				roofData.vecRoofMesh = tempRoofMesh;
+				roofData.vecMeshData = tempRoofMesh;
+
+				roofData.meshSize = 1.0;
 
 				// 対象屋根面に追加
-				bldData.mapRoofSurface[surface.roofSurfaceId] = roofData;
+				bldData.mapSurface[surface.roofSurfaceId] = roofData;
 
 			}
 		}
 
 		// 対象屋根面がない
-		if (bldData.mapRoofSurface.size() == 0) { continue; }
+		if (bldData.mapSurface.size() == 0) { continue; }
 
 		// 建物BBに高さを付与
 		std::vector<CVector3D> bbPos{
@@ -615,11 +898,222 @@ void CCalcSolarPotentialMng::calcRoofAspect(const BLDGLIST& bldList, CBuildingDa
 		center *= 0.25;
 		bldData.center = center;
 
-		bldDataMap[build.building] = bldData;
+		bldDataMap[build->building] = bldData;
 
 	}
 }
 
+// 傾斜角と方位角を算出
+// 
+void CCalcSolarPotentialMng::calcLandAspect(const AREADATA& area, CPotentialData& landData)
+{
+	LANDSURFACES surface = area.landSurface;
+
+	int surfacesize = (int)surface.landSurfaceList.size();
+	if (surfacesize == 0)	return;
+
+	std::vector<CPointBase> vecAllLandPos;
+
+	int meshCount = 0;
+
+	for (const auto& member : surface.landSurfaceList)
+	{
+		CSurfaceData surfaceData;
+
+		int polygonsize = (int)member.posList.size();
+		if (polygonsize != 4)
+		{
+			continue;
+		}
+
+		const std::vector<CPointBase> vecAry(member.posList.begin(), member.posList.end());
+		vecAllLandPos.insert(vecAllLandPos.end(), vecAry.begin(), vecAry.end());
+
+		// 面積算出
+		double surfacearea = calcArea(vecAry);
+		// 面積が小さい場合除外
+		if (surfacearea < m_pUIParam->pSolarPotentialParam->pLand->dArea2D)
+		{
+			continue;
+		}
+
+		// 法線算出
+		CVector3D normal;
+		if (!calcRansacPlane(vecAry, normal))
+		{
+			continue;
+		}
+
+		// 傾斜角
+		double slopeDeg;
+		CGeoUtil::CalcSlope(normal, slopeDeg);
+		// 傾き除外判定
+		if (slopeDeg > m_pUIParam->pSolarPotentialParam->pLand->dSlopeAngle)
+		{
+			continue;
+		}
+
+		// 方位角
+		double azDeg;
+		int JPZONE = GetINIParam()->GetJPZone();
+		CGeoUtil::CalcAzimuth(normal, azDeg, JPZONE);
+
+		// 対応する土地面(メッシュ)の計算結果格納用データを追加
+		CMeshData mesh;
+		for (const auto& pos : vecAry)
+		{
+			mesh.meshPos.emplace_back(CVector3D(pos.x, pos.y, pos.z));
+		}
+		mesh.area = surfacearea;
+		mesh.meshId = CStringEx::Format("%s_%d", area.areaID.c_str(), meshCount);
+
+		// 土地面(メッシュ)の中心座標を算出
+		CVector3D center;
+		for (auto& pt : vecAry)
+		{
+			CVector3D pos(pt.x, pt.y, pt.z);
+			center += pos;
+		}
+		center *= 0.25;
+		mesh.center = center;
+		mesh.centerMod = center;
+
+		// 土地面ごとの計算結果格納用データを作成
+		{
+			surfaceData.area = surfacearea;
+
+			// 傾斜角と方位角の平均設定
+			surfaceData.slopeDegreeAve = slopeDeg;
+			surfaceData.azDegreeAve = azDeg;
+
+			double slopeMdDeg = surfaceData.slopeDegreeAve;
+			double azMdDeg = surfaceData.azDegreeAve;
+
+			// 補正
+			{
+				slopeMdDeg = area.degree;
+				switch ((eDirections)area.direction)
+				{
+				case eDirections::EAST:
+					azMdDeg = 90.0;
+					break;
+				case eDirections::WEST:
+					azMdDeg = 270.0;
+					break;
+				case eDirections::SOUTH:
+					azMdDeg = 180.0;
+					break;
+				case eDirections::NORTH:
+					azMdDeg = 0.0;
+					break;
+				}
+
+				// メッシュ座標を補正
+				CVector3D centerMd;
+
+				for (auto& meshPos : mesh.meshPos)
+				{
+					CVector3D orgPos(meshPos - mesh.center);
+					orgPos.z = 0.0;
+					CVector3D rotPos;
+					double theta = slopeMdDeg * _COEF_DEG_TO_RAD;
+
+					// 補正方位に変換
+					switch ((eDirections)area.direction)
+					{
+					case eDirections::EAST:
+						rotPos.x = orgPos.x * cos(-theta);
+						rotPos.y = orgPos.y;
+						rotPos.z = orgPos.x * sin(-theta);
+						break;
+					case eDirections::WEST:
+						rotPos.x = orgPos.x * cos(theta);
+						rotPos.y = orgPos.y;
+						rotPos.z = orgPos.x * sin(theta);
+						break;
+					case eDirections::SOUTH:
+						rotPos.x = orgPos.x;
+						rotPos.y = orgPos.y * cos(theta);
+						rotPos.z = orgPos.y * sin(theta);
+						break;
+					case eDirections::NORTH:
+						rotPos.x = orgPos.x;
+						rotPos.y = orgPos.y * cos(-theta);
+						rotPos.z = orgPos.y * sin(-theta);
+						break;
+					default:
+						rotPos = orgPos;
+						break;
+					}
+
+					rotPos += mesh.center;
+					meshPos = rotPos;
+
+					// 中心
+					centerMd += meshPos;
+				}
+				centerMd *= 0.25;
+				mesh.centerMod = centerMd;
+			}
+
+			surfaceData.slopeModDegree = slopeMdDeg;
+			surfaceData.azModDegree = azMdDeg;
+
+			// 面中心を設定(メッシュと同様)
+			surfaceData.center = center;
+
+			// メッシュリストを追加
+			surfaceData.vecMeshData.emplace_back(mesh);
+
+			surfaceData.meshSize = surface.meshSize;
+
+			// 対象屋根面に追加
+			std::string id = CStringEx::Format("%10d", meshCount);
+			landData.mapSurface[id] = surfaceData;
+
+		}
+
+		meshCount++;
+
+	}
+
+	// 範囲BBに高さを付与
+	std::vector<CVector3D> bbPos{
+		{area.bbMinX, area.bbMinY, 0.0},
+		{area.bbMinX, area.bbMaxY, 0.0},
+		{area.bbMaxX, area.bbMinY, 0.0},
+		{area.bbMaxX, area.bbMaxY, 0.0}
+	};
+	landData.bbPos = bbPos;
+
+	// 範囲全体BBの法線
+	CVector3D n;
+	CGeoUtil::OuterProduct(
+		CVector3D(bbPos[1], bbPos[0]),
+		CVector3D(bbPos[2], bbPos[1]), n);
+	if (n.z < 0) n *= -1;
+
+	CVector3D p(vecAllLandPos[0].x, vecAllLandPos[0].y, vecAllLandPos[0].z);
+	double d = CGeoUtil::InnerProduct(p, n);
+	CVector3D inVec(0.0, 0.0, 1.0);
+	double dot = CGeoUtil::InnerProduct(n, inVec);
+
+	CVector3D center;		// 中心の座標
+	for (auto& pos : landData.bbPos)
+	{
+		// 平面と垂線の交点
+		CVector3D p0(pos.x, pos.y, 0.0);
+		double t = (d - CGeoUtil::InnerProduct(p0, n)) / dot;
+		// 交点
+		CVector3D tempPoint = p0 + t * inVec;
+		pos.z = tempPoint.z;
+		// 中心
+		center += pos;
+	}
+	center *= 0.25;
+	landData.center = center;
+
+}
 
 /*!	頂点群から近似平面算出
 @note   屋根面の傾斜角・方位角
@@ -711,16 +1205,259 @@ void CCalcSolarPotentialMng::calcMonthlyRate()
 	}
 }
 
+/// <summary>
+/// 発電ポテンシャル推計結果を出力
+/// </summary>
+/// <param name="target"></param>
+bool CCalcSolarPotentialMng::outputAreaBuildResult(const AREADATA& areaData)
+{
+	bool ret = true;
+
+	const auto& resultData = (*m_pmapResultData)[areaData.areaID];
+
+	// 対象エリアのフォルダ名
+	std::wstring strAreaDirName = CStringEx::Format(L"%s_%s", CStringEx::ToWString(areaData.areaID).c_str(), CStringEx::ToWString(areaData.areaName).c_str());
+	if (areaData.areaName == "")	strAreaDirName.pop_back();	// 名称が無い場合は末尾の"_"を削除
+
+	// 建物
+	if (areaData.analyzeBuild && resultData.pBuildMap)
+	{
+		// 解析対象ごとの出力先フォルダ名
+		std::wstring strAnalyzeTargetDir = GetDirName_AnalyzeTargetDir(eAnalyzeTarget::ROOF);
+		// 対象エリアのフォルダを作成
+		std::wstring strAreaDir = GetFUtil()->Combine(strAnalyzeTargetDir, strAreaDirName);
+		// フォルダを作成
+		if (!GetFUtil()->IsExistPath(strAreaDir))
+		{
+			if (CreateDirectory(strAreaDir.c_str(), NULL) == FALSE)
+			{
+				return false;
+			}
+		}
+
+		// 3次メッシュごとに出力
+		for (const auto& [Lv3meshId, dataMap] : *resultData.pBuildMap)
+		{
+			// 建物リストを取得
+			BLDGLIST bldList{};  // 格納用
+
+			for (const auto& bldli : m_targetArea->neighborBldgList)
+			{
+				if (Lv3meshId == bldli->meshID)
+				{
+					bldList = *bldli;
+					break;
+				}
+			}
+
+			// メッシュのフォルダを作成
+			std::wstring strMeshDir = GetFUtil()->Combine(strAreaDir, CStringEx::ToWString(Lv3meshId));
+			// フォルダを作成
+			if (!GetFUtil()->IsExistPath(strMeshDir))
+			{
+				if (CreateDirectory(strMeshDir.c_str(), NULL) == FALSE)
+				{
+					return false;
+				}
+			}
+
+			// CSV
+			{
+				// 面ごとの日射量算出結果
+				ret &= outputSurfaceRadCSV(eAnalyzeTarget::ROOF, dataMap, strMeshDir);
+
+				// 月別日射量CSV(年間のみ)
+				if (m_pUIParam->eAnalyzeDate == eDateType::Year)
+				{
+					ret &= outputMonthlyRadCSV(dataMap, strMeshDir);
+				}
+			}
+
+			// 日射量画像を出力
+			{
+				double outMeshsize = 1.0;
+
+				// 出力用データを作成
+				std::vector<CPointBase>* pvecPoint3d = new std::vector<CPointBase>();
+				ret &= createPointData_Build(*pvecPoint3d, areaData, bldList, dataMap, outMeshsize, eOutputImageTarget::SOLAR_RAD);
+
+				std::wstring strFileName = CStringEx::Format(L"日射量_%s_%s.tif", CStringEx::ToWString(areaData.areaID).c_str(), CStringEx::ToWString(Lv3meshId).c_str());
+				std::wstring strTiffPath = GetFUtil()->Combine(strMeshDir, strFileName);
+
+				if (!outputImage(strTiffPath, pvecPoint3d, outMeshsize, eOutputImageTarget::SOLAR_RAD))
+				{
+					return false;
+				}
+				else
+				{
+					// 出力TIFF画像をコピー
+					std::wstring strCopyDir = GetFUtil()->Combine(strAnalyzeTargetDir, GetDirName_SolarRadImage());
+					if (!GetFUtil()->IsExistPath(strCopyDir))
+					{
+						if (CreateDirectory(strCopyDir.c_str(), NULL) == FALSE)
+						{
+							return false;
+						}
+					}
+					std::wstring dstPath = GetFUtil()->Combine(strCopyDir, strFileName);
+					CopyFile(strTiffPath.c_str(), dstPath.c_str(), FALSE);
+					std::wstring strWldPath = GetFUtil()->ChangeFileNameExt(strTiffPath, L".tfw");
+					std::wstring dstPath2 = GetFUtil()->ChangeFileNameExt(dstPath, L".tfw");
+					CopyFile(strWldPath.c_str(), dstPath2.c_str(), FALSE);
+
+				}
+
+			}
+
+			// 発電量画像を出力
+			{
+				double outMeshsize = 1.0;
+
+				// 出力用データを作成
+				std::vector<CPointBase>* pvecPoint3d = new std::vector<CPointBase>();
+				ret &= createPointData_Build(*pvecPoint3d, areaData, bldList, dataMap, outMeshsize, eOutputImageTarget::SOLAR_POWER);
+
+				// 出力フォルダを作成
+				std::wstring strOutDir = GetFUtil()->Combine(strAnalyzeTargetDir, GetDirName_SolarPotentialImage());
+				if (!GetFUtil()->IsExistPath(strOutDir))
+				{
+					if (CreateDirectory(strOutDir.c_str(), NULL) == FALSE)
+					{
+						return false;
+					}
+				}
+				// テクスチャ出力
+				std::wstring strFileName = CStringEx::Format(L"発電量_%s_%s.tif", CStringEx::ToWString(areaData.areaID).c_str(), CStringEx::ToWString(Lv3meshId).c_str());
+				std::wstring strTiffPath = GetFUtil()->Combine(strOutDir, strFileName);
+				ret &= outputImage(strTiffPath, pvecPoint3d, outMeshsize, eOutputImageTarget::SOLAR_POWER);
+
+			}
+		}
+
+	}
+
+	return ret;
+}
+
+
+/// <summary>
+/// 発電ポテンシャル推計結果を出力
+/// </summary>
+/// <param name="target"></param>
+bool CCalcSolarPotentialMng::outputAreaLandResult(const AREADATA& areaData)
+{
+	bool ret = true;
+
+	const auto& resultData = (*m_pmapResultData)[areaData.areaID];
+
+	// 対象エリアのフォルダ名
+	std::wstring strAreaDirName = CStringEx::Format(L"%s_%s", CStringEx::ToWString(areaData.areaID).c_str(), CStringEx::ToWString(areaData.areaName).c_str());
+	if (areaData.areaName == "")	strAreaDirName.pop_back();	// 名称が無い場合は末尾の"_"を削除
+
+	// 土地
+	if (areaData.analyzeLand && resultData.pLandData)
+	{
+		// 解析対象ごとの出力先フォルダ名
+		std::wstring strAnalyzeTargetDir = GetDirName_AnalyzeTargetDir(eAnalyzeTarget::LAND);
+		// 対象エリアのフォルダを作成
+		std::wstring strAreaDir = GetFUtil()->Combine(strAnalyzeTargetDir, strAreaDirName);
+		// フォルダを作成
+		if (!GetFUtil()->IsExistPath(strAreaDir))
+		{
+			if (CreateDirectory(strAreaDir.c_str(), NULL) == FALSE)
+			{
+				return false;
+			}
+		}
+
+		CPotentialDataMap dataMap;
+		dataMap[areaData.areaID] = *resultData.pLandData;
+
+		// CSV
+		{
+			// 面ごとの日射量算出結果
+			ret &= outputSurfaceRadCSV(eAnalyzeTarget::LAND, dataMap, strAreaDir);
+
+			// 月別日射量CSV(年間のみ)
+			if (m_pUIParam->eAnalyzeDate == eDateType::Year)
+			{
+				ret &= outputMonthlyRadCSV(dataMap, strAreaDir);
+			}
+		}
+
+		// 日射量画像を出力
+		{
+			double outMeshsize = 1.0;
+
+			// 出力用データを作成
+			std::vector<CPointBase>* pvecPoint3d = new std::vector<CPointBase>;
+			ret &= createPointData_Land(*pvecPoint3d, areaData, *resultData.pLandData, eOutputImageTarget::SOLAR_RAD);
+
+			std::wstring strFileName = CStringEx::Format(L"日射量_%s.tif", CStringEx::ToWString(areaData.areaID).c_str());
+			std::wstring strTiffPath = GetFUtil()->Combine(strAreaDir, strFileName);
+
+			if (ret && !outputImage(strTiffPath, pvecPoint3d, outMeshsize, eOutputImageTarget::SOLAR_RAD))
+			{
+				return false;
+			}
+			else
+			{
+				// 出力TIFF画像をコピー
+				std::wstring strCopyDir = GetFUtil()->Combine(strAnalyzeTargetDir, GetDirName_SolarRadImage());
+				if (!GetFUtil()->IsExistPath(strCopyDir))
+				{
+					if (CreateDirectory(strCopyDir.c_str(), NULL) == FALSE)
+					{
+						return false;
+					}
+				}
+				std::wstring dstPath = GetFUtil()->Combine(strCopyDir, strFileName);
+				CopyFile(strTiffPath.c_str(), dstPath.c_str(), FALSE);
+				std::wstring strWldPath = GetFUtil()->ChangeFileNameExt(strTiffPath, L".tfw");
+				std::wstring dstPath2 = GetFUtil()->ChangeFileNameExt(dstPath, L".tfw");
+				CopyFile(strWldPath.c_str(), dstPath2.c_str(), FALSE);
+			}
+		}
+
+		// 発電量画像を出力
+		{
+			double outMeshsize = 1.0;
+
+			// 出力用データを作成
+			std::vector<CPointBase>* pvecPoint3d = new std::vector<CPointBase>;
+			ret &= createPointData_Land(*pvecPoint3d, areaData, *resultData.pLandData, eOutputImageTarget::SOLAR_POWER);
+
+			if (ret)
+			{
+				// 出力フォルダを作成
+				std::wstring strOutDir = GetFUtil()->Combine(strAnalyzeTargetDir, GetDirName_SolarPotentialImage());
+				if (!GetFUtil()->IsExistPath(strOutDir))
+				{
+					if (CreateDirectory(strOutDir.c_str(), NULL) == FALSE)
+					{
+						return false;
+					}
+				}
+				// テクスチャ出力
+				std::wstring strFileName = CStringEx::Format(L"発電量_%s.tif", CStringEx::ToWString(areaData.areaID).c_str());
+				std::wstring strTiffPath = GetFUtil()->Combine(strOutDir, strFileName);
+
+				ret &= outputImage(strTiffPath, pvecPoint3d, outMeshsize, eOutputImageTarget::SOLAR_POWER);
+			}
+		}
+	}
+
+	return ret;
+}
+
 // 日射量算出結果のポイントデータを作成
-bool CCalcSolarPotentialMng::createPointData(
+bool CCalcSolarPotentialMng::createPointData_Build(
+
 	std::vector<CPointBase>& vecPoint3d,
-	const std::string& Lv3meshId,
-	double bbMinX,
-	double bbMinY,
-	double bbMaxX,
-	double bbMaxY,
-	double outMeshsize,		// 出力メッシュサイズ(1.0m以下)
-	const CBuildingDataMap& bldDataMap,
+	const AREADATA& areaData,
+	const BLDGLIST& bldList,
+	const CPotentialDataMap& bldDataMap,
+	double outMeshsize,
 	const eOutputImageTarget& eTarget
 )
 {
@@ -729,80 +1466,101 @@ bool CCalcSolarPotentialMng::createPointData(
 
 	vecPoint3d.clear();
 
-	int dataCount = (int)m_pvecAllBuildList->size();
-	for (int ic = 0; ic < dataCount; ic++)
+	for (const auto& [buildId, bldData] : bldDataMap)
 	{
-		const BLDGLIST& bldList = m_pvecAllBuildList->at(ic);
-		if (bldList.meshID != Lv3meshId)	continue;
+		if (areaData.targetBuildings.find(bldList.meshID) == areaData.targetBuildings.end())	continue;
 
-		int bldCount = (int)bldList.buildingList.size();
-		for (int jc = 0; jc < bldCount; jc++)
+		BUILDINGS build;
+		const auto& tmpBuildings = areaData.targetBuildings.at(bldList.meshID);
+		for (const auto& bldg : tmpBuildings)
 		{
-			BUILDINGS build = bldList.buildingList[jc];
-			std::string buildId = build.building;
-			if (bldDataMap.count(buildId) == 0)		continue;
-
-			const CBuildingData& bldData = bldDataMap.at(buildId);
-
-			int surfaceCount = (int)build.roofSurfaceList.size();
-			for (int kc = 0; kc < surfaceCount; kc++)
+			if (buildId == bldg->building)
 			{
-				ROOFSURFACES surface = build.roofSurfaceList[kc];
-				std::string surfaceId = surface.roofSurfaceId;
-				if (bldData.mapRoofSurface.count(surfaceId) == 0)	continue;
+				build = *bldg;
+				break;
+			}
+		}
 
-				const CRoofSurfaceData& surfaceData = bldData.mapRoofSurface.at(surfaceId);
-				double dMinX = surfaceData.bbPos[0].x, dMaxX = surfaceData.bbPos[3].x;
-				double dMinY = surfaceData.bbPos[0].y, dMaxY = surfaceData.bbPos[3].y;
-				int iH = (int)std::ceil((dMaxY - dMinY) / outMeshsize);
-				int iW = (int)std::ceil((dMaxX - dMinX) / outMeshsize);
+		int surfaceCount = (int)build.roofSurfaceList.size();
+		for (int kc = 0; kc < surfaceCount; kc++)
+		{
+			ROOFSURFACES surface = build.roofSurfaceList[kc];
+			std::string surfaceId = surface.roofSurfaceId;
+			if (bldData.mapSurface.count(surfaceId) == 0)	continue;
 
-				for (int h = 0; h < iH; h++)
+			const CSurfaceData& surfaceData = bldData.mapSurface.at(surfaceId);
+			double dMinX = surfaceData.bbPos[0].x, dMaxX = surfaceData.bbPos[3].x;
+			double dMinY = surfaceData.bbPos[0].y, dMaxY = surfaceData.bbPos[3].y;
+			int iH = (int)std::ceil((dMaxY - dMinY) / outMeshsize);
+			int iW = (int)std::ceil((dMaxX - dMinX) / outMeshsize);
+
+			for (int h = 0; h < iH; h++)
+			{
+				double curtY = dMinY + h * (double)outMeshsize;
+				if (CEpsUtil::Less(dMaxY, curtY)) curtY = dMaxY;
+
+				for (int w = 0; w < iW; w++)
 				{
-					double curtY = dMinY + h * (double)outMeshsize;
-					if (CEpsUtil::Less(dMaxY, curtY)) curtY = dMaxY;
+					double curtX = dMinX + w * (double)outMeshsize;
+					if (CEpsUtil::Less(dMaxX, curtX)) curtX = dMaxX;
 
-					for (int w = 0; w < iW; w++)
+					// 屋根ごとに内外判定する
+					for (const auto& roofSurfaces : surface.roofSurfaceList)
 					{
-						double curtX = dMinX + w * (double)outMeshsize;
-						if (CEpsUtil::Less(dMaxX, curtX)) curtX = dMaxX;
-
-						// 屋根ごとに内外判定する
-						for (const auto& roofSurfaces : surface.roofSurfaceList)
+						// 内外判定用
+						int iCountPoint = (int)roofSurfaces.posList.size();
+						CPoint2D* ppoint = new CPoint2D[iCountPoint];
+						for (int n = 0; n < iCountPoint; n++)
 						{
-							// 内外判定用
-							int iCountPoint = (int)roofSurfaces.posList.size();
-							CPoint2D* ppoint = new CPoint2D[iCountPoint];
-							for (int n = 0; n < iCountPoint; n++)
-							{
-								ppoint[n] = CPoint2D(roofSurfaces.posList[n].x, roofSurfaces.posList[n].y);
-							}
-							CPoint2D target2d(curtX, curtY);
-							bool bRet = CGeoUtil::IsPointInPolygon(target2d, iCountPoint, ppoint);
+							ppoint[n] = CPoint2D(roofSurfaces.posList[n].x, roofSurfaces.posList[n].y);
+						}
+						CPoint2D target2d(curtX, curtY);
+						bool bInside = CGeoUtil::IsPointInPolygon(target2d, iCountPoint, ppoint);
+						delete[] ppoint;
 
-							// Z値に日射量算出結果を設定する
-							if (bRet)
+						if (!bInside)	continue;
+
+						if (m_pUIParam->pSolarPotentialParam->pRoof->bExclusionInterior)
+						{
+							// interior面を除外する場合は内周を描画しない
+							for (const auto& interior : roofSurfaces.interiorList)
 							{
-								switch (eTarget)
+								iCountPoint = (int)interior.posList.size();
+								CPoint2D* pinpoint = new CPoint2D[iCountPoint];
+								for (int n = 0; n < iCountPoint; n++)
 								{
-								case eOutputImageTarget::SOLAR_RAD:
-									vecPoint3d.emplace_back(CPointBase(curtX, curtY, surfaceData.solarRadiationUnit));
-									break;
-
-								case eOutputImageTarget::SOLAR_POWER:
-									vecPoint3d.emplace_back(CPointBase(curtX, curtY, bldData.solarPowerUnit));
-									break;
-
-								default:
-									return false;
+									pinpoint[n] = CPoint2D(interior.posList[n].x, interior.posList[n].y);
 								}
+
+								bInside = !CGeoUtil::IsPointInPolygon(target2d, iCountPoint, pinpoint);
+								delete[] pinpoint;
+
+								if (!bInside)	break;
 							}
-							delete[] ppoint;
+						}
+
+						// Z値に日射量算出結果を設定する
+						if (bInside)
+						{
+							switch (eTarget)
+							{
+							case eOutputImageTarget::SOLAR_RAD:
+								vecPoint3d.emplace_back(CPointBase(curtX, curtY, surfaceData.solarRadiationUnit));
+								break;
+
+							case eOutputImageTarget::SOLAR_POWER:
+								vecPoint3d.emplace_back(CPointBase(curtX, curtY, bldData.solarPowerUnit));
+								break;
+
+							default:
+								return false;
+							}
 						}
 					}
 				}
 			}
 		}
+
 	}
 
 	double tmpMinX = DBL_MAX, tmpMaxX = -DBL_MAX, tmpMinY = DBL_MAX, tmpMaxY = -DBL_MAX;
@@ -816,15 +1574,123 @@ bool CCalcSolarPotentialMng::createPointData(
 
 	// 3次メッシュのサイズで画像出力したいので四隅の座標を追加
 	bool addLB, addLT, addRB, addRT;
-	addLB = ((tmpMinX > bbMinX && tmpMinX < (bbMinX + 1.0)) && (tmpMinY > bbMinY && tmpMinY < (bbMinY + 1.0))) ? false : true;
-	addLT = ((tmpMinX > bbMinX && tmpMinX < (bbMinX + 1.0)) && (tmpMaxY < bbMaxY && tmpMaxY > (bbMaxY - 1.0))) ? false : true;
-	addRB = ((tmpMaxX < bbMaxX && tmpMaxX > (bbMaxX - 1.0)) && (tmpMinY > bbMinY && tmpMinY < (bbMinY + 1.0))) ? false : true;
-	addRT = ((tmpMaxX < bbMaxX && tmpMaxX > (bbMaxX - 1.0)) && (tmpMaxY < bbMaxY && tmpMaxY > (bbMaxY - 1.0))) ? false : true;
+	addLB = ((tmpMinX > bldList.bbMinX && tmpMinX < (bldList.bbMinX + 1.0)) && (tmpMinY > bldList.bbMinY && tmpMinY < (bldList.bbMinY + 1.0))) ? false : true;
+	addLT = ((tmpMinX > bldList.bbMinX && tmpMinX < (bldList.bbMinX + 1.0)) && (tmpMaxY < bldList.bbMaxY && tmpMaxY > (bldList.bbMaxY - 1.0))) ? false : true;
+	addRB = ((tmpMaxX < bldList.bbMaxX && tmpMaxX > (bldList.bbMaxX - 1.0)) && (tmpMinY > bldList.bbMinY && tmpMinY < (bldList.bbMinY + 1.0))) ? false : true;
+	addRT = ((tmpMaxX < bldList.bbMaxX && tmpMaxX > (bldList.bbMaxX - 1.0)) && (tmpMaxY < bldList.bbMaxY && tmpMaxY > (bldList.bbMaxY - 1.0))) ? false : true;
 	// 中央
-	if (addLB)	vecPoint3d.push_back(CPointBase(bbMinX + 0.5, bbMinY + 0.5, DEF_IMG_NODATA));
-	if (addLT)	vecPoint3d.push_back(CPointBase(bbMinX + 0.5, bbMaxY - 0.5, DEF_IMG_NODATA));
-	if (addRB)	vecPoint3d.push_back(CPointBase(bbMaxX - 0.5, bbMinY + 0.5, DEF_IMG_NODATA));
-	if (addRT)	vecPoint3d.push_back(CPointBase(bbMaxX - 0.5, bbMaxY - 0.5, DEF_IMG_NODATA));
+	if (addLB)	vecPoint3d.push_back(CPointBase(bldList.bbMinX + 0.5, bldList.bbMinY + 0.5, DEF_IMG_NODATA));
+	if (addLT)	vecPoint3d.push_back(CPointBase(bldList.bbMinX + 0.5, bldList.bbMaxY - 0.5, DEF_IMG_NODATA));
+	if (addRB)	vecPoint3d.push_back(CPointBase(bldList.bbMaxX - 0.5, bldList.bbMinY + 0.5, DEF_IMG_NODATA));
+	if (addRT)	vecPoint3d.push_back(CPointBase(bldList.bbMaxX - 0.5, bldList.bbMaxY - 0.5, DEF_IMG_NODATA));
+
+	if (vecPoint3d.size() > 0)	ret = true;
+
+	return ret;
+}
+
+
+// 日射量算出結果のポイントデータを作成(土地)
+bool CCalcSolarPotentialMng::createPointData_Land(
+	std::vector<CPointBase>& vecPoint3d,
+	const AREADATA& areaData,
+	const CPotentialData& landData,
+	const eOutputImageTarget& eTarget
+)
+{
+	// 1mメッシュの中央座標(x,y)と出力したい日射量算出結果(z)
+	bool ret = false;
+
+	vecPoint3d.clear();
+
+	if (landData.mapSurface.size() == 0)	return false;
+
+	vecPoint3d.insert(vecPoint3d.end(), areaData.pointMemData.begin(), areaData.pointMemData.end());
+	for (auto& point : vecPoint3d)
+	{
+		if (point.z == DEF_IMG_NODATA) continue;
+
+		CPoint2D target2d(point.x + 0.5, point.y + 0.5);
+
+		// メッシュ単位で作成
+		bool inside = false;
+
+		for (const auto& [surfaceId, surfaceData] : landData.mapSurface)
+		{
+			double dx = target2d.x - surfaceData.center.x;
+			double dy = target2d.y - surfaceData.center.y;
+			if (calcLength(dx, dy, 0.0) > surfaceData.meshSize)
+			{
+				// 1メッシュサイズより離れていたらスキップ
+				continue;
+			}
+
+			for (auto& mesh : surfaceData.vecMeshData)
+			{
+				CPoint2D* ppoint = new CPoint2D[4];
+				int n = 0;
+				for (auto& pos : mesh.meshPos)
+				{
+					ppoint[n] = CPoint2D(pos.x, pos.y);
+					n++;
+				}
+				inside = CGeoUtil::IsPointInPolygon(target2d, 4, ppoint);
+				delete[] ppoint;
+
+				if (!inside)
+				{
+					continue;
+				}
+
+				switch (eTarget)
+				{
+				case eOutputImageTarget::SOLAR_RAD:
+					point.z = mesh.solarRadiationUnit;
+					break;
+
+				case eOutputImageTarget::SOLAR_POWER:
+					point.z = mesh.solarPowerUnit;
+					break;
+
+				default:
+					return false;
+				}
+
+				break;
+			}
+
+			if (inside)
+			{
+				break;
+			}
+		}
+
+		if (!inside)
+		{
+			point.z = DEF_IMG_NODATA;
+		}
+	}
+
+	double tmpMinX = DBL_MAX, tmpMaxX = -DBL_MAX, tmpMinY = DBL_MAX, tmpMaxY = -DBL_MAX;
+	for (const auto& point : vecPoint3d)
+	{
+		tmpMinX = (tmpMinX > point.x) ? point.x : tmpMinX;
+		tmpMaxX = (tmpMaxX < point.x) ? point.x : tmpMaxX;
+		tmpMinY = (tmpMinY > point.y) ? point.y : tmpMinY;
+		tmpMaxY = (tmpMaxY < point.y) ? point.y : tmpMaxY;
+	}
+
+	// 選択したエリアのBBで画像出力したいので四隅の座標を追加
+	bool addLB, addLT, addRB, addRT;
+	addLB = ((tmpMinX > areaData.bbMinX && tmpMinX < (areaData.bbMinX + 1.0)) && (tmpMinY > areaData.bbMinY && tmpMinY < (areaData.bbMinY + 1.0))) ? false : true;
+	addLT = ((tmpMinX > areaData.bbMinX && tmpMinX < (areaData.bbMinX + 1.0)) && (tmpMaxY < areaData.bbMaxY&& tmpMaxY >(areaData.bbMaxY - 1.0))) ? false : true;
+	addRB = ((tmpMaxX < areaData.bbMaxX&& tmpMaxX >(areaData.bbMaxX - 1.0)) && (tmpMinY > areaData.bbMinY && tmpMinY < (areaData.bbMinY + 1.0))) ? false : true;
+	addRT = ((tmpMaxX < areaData.bbMaxX&& tmpMaxX >(areaData.bbMaxX - 1.0)) && (tmpMaxY < areaData.bbMaxY&& tmpMaxY >(areaData.bbMaxY - 1.0))) ? false : true;
+	// 中央
+	if (addLB)	vecPoint3d.push_back(CPointBase(areaData.bbMinX + 0.5, areaData.bbMinY + 0.5, DEF_IMG_NODATA));
+	if (addLT)	vecPoint3d.push_back(CPointBase(areaData.bbMinX + 0.5, areaData.bbMaxY - 0.5, DEF_IMG_NODATA));
+	if (addRB)	vecPoint3d.push_back(CPointBase(areaData.bbMaxX - 0.5, areaData.bbMinY + 0.5, DEF_IMG_NODATA));
+	if (addRT)	vecPoint3d.push_back(CPointBase(areaData.bbMaxX - 0.5, areaData.bbMaxY - 0.5, DEF_IMG_NODATA));
 
 	if (vecPoint3d.size() > 0)	ret = true;
 
@@ -834,12 +1700,8 @@ bool CCalcSolarPotentialMng::createPointData(
 // 画像出力
 bool CCalcSolarPotentialMng::outputImage(
 	const std::wstring strFilePath,
-	const std::string& Lv3meshId,
-	double bbMinX,
-	double bbMinY,
-	double bbMaxX,
-	double bbMaxY,
-	const CBuildingDataMap& bldDataMap,
+	std::vector<CPointBase>* pvecPoint3d,
+	double outMeshsize,
 	const eOutputImageTarget& eTarget
 )
 {
@@ -847,21 +1709,7 @@ bool CCalcSolarPotentialMng::outputImage(
 
 	bool ret = false;
 
-	double outMeshsize = 1.0;
-
-	// 出力用データを作成
-	std::vector<CPointBase>* pvecPoint3d = new std::vector<CPointBase>;
-	ret = createPointData(*pvecPoint3d, Lv3meshId, bbMinX, bbMinY, bbMaxX, bbMaxY, outMeshsize, bldDataMap, eTarget);
-
-	std::wstring strColorSettingPath = L"";
-	if (eTarget == eOutputImageTarget::SOLAR_RAD)
-	{
-		strColorSettingPath = L"colorSetting_SolarRad.txt";
-	}
-	else if (eTarget == eOutputImageTarget::SOLAR_POWER)
-	{
-		strColorSettingPath = L"colorSetting_SolarPower.txt";
-	}
+	std::wstring strColorSettingPath = L"Assets\\ColorSettings\\Template\\" + getColorSettingFileName(eTarget);
 
 	CTiffDataManager tiffDataMng;
 	tiffDataMng.SetColorSetting(strColorSettingPath);
@@ -869,7 +1717,7 @@ bool CCalcSolarPotentialMng::outputImage(
 	tiffDataMng.SetNoDataVal(DEF_IMG_NODATA);
 	tiffDataMng.SetEPSGCode(DEF_EPSGCODE);
 	tiffDataMng.SetFilePath(strFilePath);
-	ret &= tiffDataMng.AddTiffData(pvecPoint3d);
+	ret = tiffDataMng.AddTiffData(pvecPoint3d);
 
 	// TIFF画像作成
 	if (ret)
@@ -886,23 +1734,161 @@ bool CCalcSolarPotentialMng::outputImage(
 	return ret;
 }
 
+std::wstring CCalcSolarPotentialMng::getColorSettingFileName(const eOutputImageTarget& eTarget)
+{
+	std::wstring strColorSettingPath = L"";
+
+	if (eTarget == eOutputImageTarget::SOLAR_POWER)
+	{
+		switch (m_pUIParam->eAnalyzeDate)
+		{
+		case eDateType::OneMonth:
+			strColorSettingPath = L"colorSetting_SolarPower_month.txt";
+			break;
+		case eDateType::OneDay:
+			strColorSettingPath = L"colorSetting_SolarPower_day.txt";
+			break;
+		case eDateType::Summer:
+			strColorSettingPath = L"colorSetting_SolarPower_summer.txt";
+			break;
+		case eDateType::Winter:
+			strColorSettingPath = L"colorSetting_SolarPower_winter.txt";
+			break;
+		case eDateType::Year:
+		default:
+			strColorSettingPath = L"colorSetting_SolarPower.txt";
+			break;
+		}
+	}
+	else if (eTarget == eOutputImageTarget::SOLAR_RAD)
+	{
+		switch (m_pUIParam->eAnalyzeDate)
+		{
+		case eDateType::OneMonth:
+			strColorSettingPath = L"colorSetting_SolarRad_month.txt";
+			break;
+		case eDateType::OneDay:
+			strColorSettingPath = L"colorSetting_SolarRad_day.txt";
+			break;
+		case eDateType::Summer:
+			strColorSettingPath = L"colorSetting_SolarRad_summer.txt";
+			break;
+		case eDateType::Winter:
+			strColorSettingPath = L"colorSetting_SolarRad_winter.txt";
+			break;
+		case eDateType::Year:
+		default:
+			strColorSettingPath = L"colorSetting_SolarRad.txt";
+			break;
+		}
+	}
+
+	return strColorSettingPath;
+}
+
+// 解析対象ごとの出力フォルダ名を取得
+const std::wstring CCalcSolarPotentialMng::GetDirName_AnalyzeTargetDir(eAnalyzeTarget target)
+{
+	std::wstring wstr = L"";
+
+	switch (target)
+	{
+	case eAnalyzeTarget::ROOF:
+		wstr = GetFUtil()->Combine(m_pUIParam->strOutputDirPath, L"建物");
+		break;
+
+	case eAnalyzeTarget::LAND:
+		wstr = GetFUtil()->Combine(m_pUIParam->strOutputDirPath, L"土地");
+		break;
+
+	default:
+		break;
+	}
+
+	// フォルダ作成
+	if (!GetFUtil()->IsExistPath(wstr))
+	{
+		if (CreateDirectory(wstr.c_str(), NULL) == FALSE)
+		{
+			return L"";
+		}
+	}
+
+	return wstr;
+}
+
+// 建物・エリアごと予測発電量CSV
+const std::wstring CCalcSolarPotentialMng::GetFileName_SolarPotentialCsv(eAnalyzeTarget target)
+{
+	std::wstring wstr = L"";
+
+	switch (target)
+	{
+	case eAnalyzeTarget::ROOF:
+		wstr = L"建物ごと予測発電量.csv";
+		break;
+
+	case eAnalyzeTarget::LAND:
+		wstr = L"土地ごと予測発電量.csv";
+		break;
+
+	default:
+		break;
+	}
+
+	return wstr;
+}
+
+// (土地面のみ)メッシュごと予測発電量CSV
+const std::wstring CCalcSolarPotentialMng::GetFileName_MeshPotentialCsv(eAnalyzeTarget target)
+{
+	return L"メッシュごと予測発電量.csv";
+}
+
+// (土地面のみ)エリアごと予測発電量SHP
+const std::wstring CCalcSolarPotentialMng::GetFileName_SolarPotentialShp()
+{
+	return L"土地ごと予測発電量.shp";
+}
+
+// 屋根面別・土地面メッシュ別日射量CSV
+const std::wstring CCalcSolarPotentialMng::GetFileName_MeshSolarRadCsv(eAnalyzeTarget target)
+{
+	std::wstring wstr = L"";
+
+	switch (target)
+	{
+	case eAnalyzeTarget::ROOF:
+		wstr = L"屋根面別日射量.csv";
+		break;
+
+	case eAnalyzeTarget::LAND:
+		wstr = L"土地面メッシュ別日射量.csv";
+		break;
+
+	default:
+		break;
+	}
+
+	return wstr;
+}
+
 bool CCalcSolarPotentialMng::outputLegendImage()
 {
 	bool ret = false;
 
 	std::wstring strColorSettingPath = L"";
 	std::wstring strMdlPath = CFileUtil::GetModulePathW();
-	std::wstring strOutDir = m_pUIParam->strOutputDirPath;
 
 	// 日射量
-	strColorSettingPath = L"colorSetting_SolarRad.txt";
+	strColorSettingPath = L"Assets\\ColorSettings\\Template\\" + getColorSettingFileName(eOutputImageTarget::SOLAR_RAD);
 	ret = CImageUtil::CreateLegendImage(strColorSettingPath, L"日射量(kWh/m2)");
 	if (ret)
 	{
 		std::wstring colorSetting = CFileUtil::Combine(strMdlPath, strColorSettingPath);
 		std::wstring srcPath = GetFUtil()->ChangeFileNameExt(colorSetting, L".jpg");
 
-		std::wstring tmpPath = CFileUtil::Combine(strOutDir, strColorSettingPath);
+		std::wstring tmpPath = CFileUtil::Combine(m_pUIParam->strOutputDirPath, getColorSettingFileName(eOutputImageTarget::SOLAR_RAD));
 		std::wstring dstPath = GetFUtil()->ChangeFileNameExt(tmpPath, L".jpg");
 
 		if (MoveFile(srcPath.c_str(), dstPath.c_str()) == FALSE)
@@ -912,14 +1898,14 @@ bool CCalcSolarPotentialMng::outputLegendImage()
 	}
 
 	// 発電量
-	strColorSettingPath = L"colorSetting_SolarPower.txt";
+	strColorSettingPath = L"Assets\\ColorSettings\\Template\\" + getColorSettingFileName(eOutputImageTarget::SOLAR_POWER);
 	ret &= CImageUtil::CreateLegendImage(strColorSettingPath, L"発電量(kWh/m2)");
 	if (ret)
 	{
 		std::wstring colorSetting = CFileUtil::Combine(strMdlPath, strColorSettingPath);
 		std::wstring srcPath = GetFUtil()->ChangeFileNameExt(colorSetting, L".jpg");
 
-		std::wstring tmpPath = CFileUtil::Combine(strOutDir, strColorSettingPath);
+		std::wstring tmpPath = CFileUtil::Combine(m_pUIParam->strOutputDirPath, getColorSettingFileName(eOutputImageTarget::SOLAR_POWER));
 		std::wstring dstPath = GetFUtil()->ChangeFileNameExt(tmpPath, L".jpg");
 
 		if (MoveFile(srcPath.c_str(), dstPath.c_str()) == FALSE)
@@ -932,72 +1918,209 @@ bool CCalcSolarPotentialMng::outputLegendImage()
 }
 
 
-// 年間日射量・発電量を出力
-bool CCalcSolarPotentialMng::outputResultCSV()
+// 全範囲における日射量・発電量CSVを出力
+bool CCalcSolarPotentialMng::outputAllAreaResultCSV()
 {
 	if (m_pmapResultData->empty()) return false;
+	if (IsCancel())	return false;
 
-	std::wstring strOutDir = m_pUIParam->strOutputDirPath;
-	if (!GetFUtil()->IsExistPath(strOutDir))
+	if (m_pUIParam->bExecBuild)
 	{
-		if (CreateDirectory(strOutDir.c_str(), NULL) == FALSE)
+		std::vector<std::string> outputList{};
+		for (auto& [areaId, resultdata]: *m_pmapResultData)
+		{
+			if (!resultdata.pBuildMap)	continue;
+
+			// 3次メッシュごとに出力
+			for (auto& [meshId, dataMap] : *resultdata.pBuildMap)
+			{
+				for (auto& [buildId, bldData] : dataMap)
+				{
+					std::string strLine = CStringEx::Format("%s,%s,%s,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+						areaId.c_str(),
+						meshId.c_str(),
+						buildId.c_str(),
+						bldData.solarRadiationTotal,
+						bldData.solarRadiationUnit,
+						bldData.solarPower,
+						bldData.solarPowerUnit,
+						bldData.GetAllArea(),
+						bldData.panelArea,
+						bldData.center.x,
+						bldData.center.y,
+						bldData.center.z
+					);
+					outputList.push_back(strLine);
+				}
+			}
+		}
+
+		// 建物結果があれば書き込み
+		if (outputList.size() > 0)
+		{
+			// 解析対象ごとの出力先フォルダ名
+			std::wstring wstrAnalyzeTargetDir = GetDirName_AnalyzeTargetDir(eAnalyzeTarget::ROOF);
+			if (wstrAnalyzeTargetDir.empty())	return false;
+
+			// 出力CSVファイル
+			std::wstring wstrFilePath = GetFUtil()->Combine(wstrAnalyzeTargetDir, GetFileName_SolarPotentialCsv(eAnalyzeTarget::ROOF));
+
+			// ヘッダ部
+			std::string header = "解析エリアID,3次メッシュID,建物ID,予測日射量(kWh),予測日射量(kWh/m2),予測発電量(kWh),予測発電量(kWh/m2),屋根面面積(m2),PV設置面積(m2),X,Y,Z";
+
+			CFileIO file;
+			if (!file.Open(wstrFilePath, L"w"))
+			{
+				return false;
+			}
+
+			// ヘッダ部
+			file.WriteLineA(header);
+
+			// データ部
+			for (const auto& str : outputList)
+			{
+				file.WriteLineA(str);
+			}
+
+			file.Close();
+		}
+
+	}
+
+	if (m_pUIParam->bExecLand)
+	{
+
+		// 解析対象ごとの出力先フォルダ名
+		std::wstring wstrAnalyzeTargetDir = GetDirName_AnalyzeTargetDir(eAnalyzeTarget::LAND);
+		if (wstrAnalyzeTargetDir.empty())	return false;
+
+		// エリアごとCSV
+		{
+			std::vector<std::string> outputList{};
+			for (auto& resultMap : *m_pmapResultData)
+			{
+				std::string areaId = resultMap.first;
+				if (!resultMap.second.pLandData)	continue;
+				CPotentialData landData = *resultMap.second.pLandData;
+
+				std::string strLine = CStringEx::Format("%s,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+					areaId.c_str(),
+					landData.solarRadiationTotal,
+					landData.solarRadiationUnit,
+					landData.solarPower,
+					landData.solarPowerUnit,
+					landData.GetAllArea(),
+					landData.panelArea,
+					landData.center.x,
+					landData.center.y,
+					landData.center.z
+				);
+				outputList.push_back(strLine);
+			}
+
+			// 土地結果があれば書き込み
+			if (outputList.size() > 0)
+			{
+				// 出力CSVファイル
+				std::wstring wstrFilePath = GetFUtil()->Combine(wstrAnalyzeTargetDir, GetFileName_SolarPotentialCsv(eAnalyzeTarget::LAND));
+
+				// ヘッダ部
+				std::string header = "解析エリアID,予測日射量(kWh),予測日射量(kWh/m2),予測発電量(kWh),予測発電量(kWh/m2),土地面面積(m2),PV設置面積(m2),X,Y,Z";
+
+				CFileIO file;
+				if (!file.Open(wstrFilePath, L"w"))
+				{
+					return false;
+				}
+
+				// ヘッダ部
+				file.WriteLineA(header);
+
+				// データ部
+				for (const auto& str : outputList)
+				{
+					file.WriteLineA(str);
+				}
+
+				file.Close();
+			}
+		}
+
+		// メッシュごとCSV
+		{
+			std::vector<std::string> outputList{};
+			for (auto& resultMap : *m_pmapResultData)
+			{
+				std::string areaId = resultMap.first;
+				if (!resultMap.second.pLandData)	continue;
+				CPotentialData& landData = *resultMap.second.pLandData;
+
+				auto& surfaceMap = landData.mapSurface;
+
+				for (auto& surfaceData : surfaceMap)
+				{
+					auto& vecMesh = surfaceData.second.vecMeshData;
+
+					for (auto& mesh : vecMesh)
+					{
+						std::string strLine = CStringEx::Format("%s,%s,%f,%f,%f,%f,%f,%f",
+							areaId.c_str(),
+							mesh.meshId.c_str(),
+							mesh.solarRadiationUnit,
+							mesh.solarPowerUnit,
+							mesh.area,
+							mesh.centerMod.x,
+							mesh.centerMod.y,
+							mesh.centerMod.z
+						);
+						outputList.push_back(strLine);
+					}
+				}
+			}
+
+			// 土地結果があれば書き込み
+			if (outputList.size() > 0)
+			{
+				// 出力CSVファイル
+				std::wstring wstrFilePath = GetFUtil()->Combine(wstrAnalyzeTargetDir, GetFileName_MeshPotentialCsv(eAnalyzeTarget::LAND));
+
+				// ヘッダ部
+				std::string header = "エリアID,土地面メッシュID,予測日射量(kWh/m2),予測発電量(kWh/m2),PV設置面積(m2),X,Y,Z";
+
+				CFileIO file;
+				if (!file.Open(wstrFilePath, L"w"))
+				{
+					return false;
+				}
+
+				// ヘッダ部
+				file.WriteLineA(header);
+
+				// データ部
+				for (const auto& str : outputList)
+				{
+					file.WriteLineA(str);
+				}
+
+				file.Close();
+			}
+		}
+
+		// SHP
+		if (!outputLandShape())
 		{
 			return false;
 		}
+
 	}
-
-	CFileIO file;
-	std::wstring strPath = GetFUtil()->Combine(strOutDir, L"建物毎年間予測発電量.csv");
-	if (!file.Open(strPath, L"w"))
-	{
-		return false;
-	}
-
-	// ヘッダ部
-	if (!file.WriteLineA("3次メッシュID,建物ID,年間予測日射量(kWh/m2),年間予測発電量(kWh),パネル面積,年間予測発電量(kWh/m2),X,Y"))
-	{
-		return false;
-	}
-
-	int dataCount = (int)m_pvecAllBuildList->size();
-	for (int ic = 0; ic < dataCount; ic++)
-	{
-		const BLDGLIST& bldList = m_pvecAllBuildList->at(ic);
-		std::string meshId = bldList.meshID;
-		if (m_pmapResultData->count(meshId) == 0)	continue;
-		const CBuildingDataMap& bldDataMap = m_pmapResultData->at(meshId);
-
-		int bldCount = (int)bldList.buildingList.size();
-		for (int jc = 0; jc < bldCount; jc++)
-		{
-			BUILDINGS build = bldList.buildingList[jc];
-			std::string buildId = build.building;
-			if (bldDataMap.count(buildId) == 0)	continue;
-
-			const CBuildingData& bldData = bldDataMap.at(buildId);
-			std::string strLine = CStringEx::Format("%s,%s,%f,%f,%f,%f,%f,%f",
-				meshId.c_str(),
-				buildId.c_str(),
-				bldData.solarRadiationUnit,
-				bldData.solarPower,
-				bldData.panelArea,
-				bldData.solarPowerUnit,
-				bldData.center.x,
-				bldData.center.y
-			);
-			file.WriteLineA(strLine);
-		}
-	}
-
-	file.Close();
 
 	return true;
 }
 
 // 月別日射量CSV出力
 bool CCalcSolarPotentialMng::outputMonthlyRadCSV(
-	const std::string& Lv3meshId,
-	const CBuildingDataMap& dataMap, 
+	const CPotentialDataMap& dataMap, 
 	const std::wstring& wstrOutDir
 )
 {
@@ -1020,67 +2143,46 @@ bool CCalcSolarPotentialMng::outputMonthlyRadCSV(
 	}
 
 	// ヘッダ部
-	if (!file.WriteLineA("建物ID,屋根面ID,MeshId,年,月,日射量(Wh/m2),日射量(MJ/m2)"))
+	if (!file.WriteLineA("ID,面ID,メッシュID,年,月,日射量(Wh/m2),日射量(MJ/m2)"))
 	{
 		return false;
 	}
 
-	int dataCount = (int)m_pvecAllBuildList->size();
-	for (int ic = 0; ic < dataCount; ic++)
+	for (auto& [id, bldData] : dataMap)
 	{
-		const BLDGLIST& bldList = m_pvecAllBuildList->at(ic);
-		if (bldList.meshID != Lv3meshId)	continue;
-
-		int bldCount = (int)bldList.buildingList.size();
-		for (int jc = 0; jc < bldCount; jc++)
+		for (auto& [surfaceId, surfaceData] : bldData.mapSurface)
 		{
-			BUILDINGS build = bldList.buildingList[jc];
-			std::string buildId = build.building;
-			if (dataMap.count(buildId) == 0)	continue;
-
-			const CBuildingData& bldData = dataMap.at(buildId);
-
-			int surfaceCount = (int)build.roofSurfaceList.size();
-			for (int kc = 0; kc < surfaceCount; kc++)
+			for (auto& mesh : surfaceData.vecMeshData)
 			{
-				ROOFSURFACES surface = build.roofSurfaceList[kc];
-				std::string surfaceId = surface.roofSurfaceId;
-				if (bldData.mapRoofSurface.count(surfaceId) == 0)	continue;
-
-				const CRoofSurfaceData& surfaceData = bldData.mapRoofSurface.at(surfaceId);
-
-				for (auto& mesh : surfaceData.vecRoofMesh)
+				for (int month = 1; month <= 12; month++)
 				{
-					for (int month = 1; month <= 12; month++)
-					{
-						double val = mesh.solarRadiation[month - 1];
+					double val = mesh.solarRadiation[month - 1];
 
-						std::string strLine = CStringEx::Format("%s,%s,%s,%d,%d,%f,%f",
-							buildId.c_str(),
-							surfaceId.c_str(),
-							mesh.meshId.c_str(),
-							GetYear(),
-							month,
-							val,
-							val / 1000 * 3.6
-						);
-						file.WriteLineA(strLine);
-					}
+					std::string strLine = CStringEx::Format("%s,%s,%s,%d,%d,%f,%f",
+						id.c_str(),
+						surfaceId.c_str(),
+						mesh.meshId.c_str(),
+						GetYear(),
+						month,
+						val,
+						val / 1000.0 * 3.6
+					);
+					file.WriteLineA(strLine);
 				}
-
 			}
 		}
 	}
+
 	file.Close();
 
 	return true;
 }
 
 
-// 月別日射量CSV出力
-bool CCalcSolarPotentialMng::outputRoofRadCSV(
-	const std::string& Lv3meshId,			// 3次メッシュID
-	const CBuildingDataMap& dataMap,
+// 面ごとの日射量CSV出力
+bool CCalcSolarPotentialMng::outputSurfaceRadCSV(
+	const eAnalyzeTarget target,
+	const CPotentialDataMap& dataMap,
 	const std::wstring& wstrOutDir			// 出力フォルダ
 )
 {
@@ -1093,58 +2195,98 @@ bool CCalcSolarPotentialMng::outputRoofRadCSV(
 			return false;
 		}
 	}
-	// デバッグ用出力
-	std::wstring strPath = GetFUtil()->Combine(wstrOutDir, L"屋根面別年間日射量.csv");
+
+	std::wstring strPath = GetFUtil()->Combine(wstrOutDir, GetFileName_MeshSolarRadCsv(target));
 
 	CFileIO file;
 	if (!file.Open(strPath, L"w"))
 	{
 		return false;
 	}
-	// ヘッダ部
-	if (!file.WriteLineA("建物ID,屋根面ID,年,1m2当たりの日射量(kWh/m2),→(MJ/m2),屋根面全体の日射量(kWh),→(MJ)"))
-	{
-		return false;
-	}
 
-	int dataCount = (int)m_pvecAllBuildList->size();
-	for (int ic = 0; ic < dataCount; ic++)
+	switch (target)
 	{
-		const BLDGLIST& bldList = m_pvecAllBuildList->at(ic);
-		if (bldList.meshID != Lv3meshId)	continue;
-
-		int bldCount = (int)bldList.buildingList.size();
-		for (int jc = 0; jc < bldCount; jc++)
+	case eAnalyzeTarget::ROOF:
+	{
+		// ヘッダ部
+		if (!file.WriteLineA("建物ID,屋根面ID,年,単位面積あたりの日射量(kWh/m2),→(MJ/m2),対象面全体の日射量(kWh),→(MJ),方位角(平均),傾斜角(平均),方位角(補正),傾斜角(補正),x,y,z"))
 		{
-			BUILDINGS build = bldList.buildingList[jc];
-			std::string buildId = build.building;
-			if (dataMap.count(buildId) == 0)	continue;
+			file.Close();
+			return false;
+		}
 
-			const CBuildingData& bldData = dataMap.at(buildId);
-
-			int surfaceCount = (int)build.roofSurfaceList.size();
-			for (int kc = 0; kc < surfaceCount; kc++)
+		for (const auto& [id, bldData]: dataMap)
+		{
+			for (auto& [surfaceId, surfaceData] : bldData.mapSurface)
 			{
-				ROOFSURFACES surface = build.roofSurfaceList[kc];
-				std::string surfaceId = surface.roofSurfaceId;
-				if (bldData.mapRoofSurface.count(surfaceId) == 0)	continue;
-
-				const CRoofSurfaceData& surfaceData = bldData.mapRoofSurface.at(surfaceId);
-
-				// デバッグ用出力
-				std::string strLine = CStringEx::Format("%s,%s,%d,%f,%f,%f,%f",
-					buildId.c_str(),
+				std::string strLine = CStringEx::Format("%s,%s,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+					id.c_str(),
 					surfaceId.c_str(),
 					GetYear(),
 					surfaceData.solarRadiationUnit,
 					surfaceData.solarRadiationUnit * 3.6,
 					surfaceData.solarRadiation,
-					surfaceData.solarRadiation * 3.6
+					surfaceData.solarRadiation * 3.6,
+					surfaceData.azDegreeAve,
+					surfaceData.slopeDegreeAve,
+					surfaceData.azModDegree,
+					surfaceData.slopeModDegree,
+					surfaceData.center.x,
+					surfaceData.center.y,
+					surfaceData.center.z
 				);
 				file.WriteLineA(strLine);
 			}
 		}
+
+		break;
 	}
+
+	case eAnalyzeTarget::LAND:
+	{
+		// ヘッダ部
+		if (!file.WriteLineA("エリアID,メッシュID,年,1メッシュあたりの日射量(kWh/m2),→(MJ/m2),土地面全体の日射量(kWh),→(MJ),方位角(平均),傾斜角(平均),方位角(補正),傾斜角(補正),x,y,z"))
+		{
+			file.Close();
+			return false;
+		}
+
+		for (auto& [id, landData] : dataMap)
+		{
+			for (auto& [surfaceId, surfaceData] : landData.mapSurface)
+			{
+				for (auto& mesh : surfaceData.vecMeshData)
+				{
+					// デバッグ用出力
+					std::string strLine = CStringEx::Format("%s,%s,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+						id.c_str(),
+						mesh.meshId.c_str(),
+						GetYear(),
+						mesh.solarRadiationUnit,
+						mesh.solarRadiationUnit * 3.6,
+						surfaceData.solarRadiation,
+						surfaceData.solarRadiation * 3.6,
+						surfaceData.azDegreeAve,
+						surfaceData.slopeDegreeAve,
+						surfaceData.azModDegree,
+						surfaceData.slopeModDegree,
+						mesh.centerMod.x,
+						mesh.centerMod.y,
+						mesh.centerMod.z
+					);
+					file.WriteLineA(strLine);
+				}
+			}
+		}
+
+		break;
+	}
+
+	default:
+		break;
+	}
+
+
 	file.Close();
 
 	return true;
@@ -1155,12 +2297,14 @@ bool CCalcSolarPotentialMng::outputRoofRadCSV(
 bool CCalcSolarPotentialMng::outputAzimuthDataCSV()
 {
 	if (m_pmapResultData->empty())	return false;
+	if (IsCancel())	return false;
 
 	bool ret = false;
 
 	// 出力パス
 	std::wstring strCsvPath = GetINIParam()->GetAzimuthCSVPath();
-	std::wstring strTempDir = GetFUtil()->GetParentDir(m_pUIParam->strOutputDirPath) + L"output";
+	std::wstring strTempDir = GetFUtil()->GetParentDir(m_pUIParam->strOutputDirPath);
+	strTempDir = GetFUtil()->GetParentDir(strTempDir) + L"system";
 	std::wstring strPath = GetFUtil()->Combine(strTempDir, strCsvPath);
 
 	// 出力用フォルダ作成
@@ -1180,38 +2324,62 @@ bool CCalcSolarPotentialMng::outputAzimuthDataCSV()
 	}
 
 	// ヘッダ部
-	if (!file.WriteLineA("3次メッシュID,建物ID,同一屋根面数,方位角(平均値)"))
+	if (!file.WriteLineA("エリアID,3次メッシュID,建物ID,同一屋根面数,方位角(平均値)"))
 	{
 		return false;
 	}
 
-	// 建物ごとの方位角データ書き込み
-	for (const auto& result : *m_pmapResultData)
+	// 方位角データ書き込み
+	for (const auto& [areaId, result] : *m_pmapResultData)
 	{
-		std::string meshId = result.first;
-		const CBuildingDataMap& bldDataMap = result.second;
-
-		for (const auto& bldMap : bldDataMap)
+		// 建物
+		if (m_pUIParam->bExecBuild && result.pBuildMap)
 		{
-			std::string buildId = bldMap.first;
-			const CBuildingData& bldData = bldMap.second;
-
-			int roofsize = (int)bldData.mapRoofSurface.size();
-			if (roofsize == 0)	continue;
-
-			std::string strAzimuths = "";
-			for (auto val : bldData.mapRoofSurface)
+			// 3次メッシュごとに出力
+			for (auto& [meshId, dataMap] : *result.pBuildMap)
 			{
-				CRoofSurfaceData roofData = val.second;
-				std::string strTemp = CStringEx::Format("%f,", roofData.azModDegree);
-				strAzimuths += strTemp;
+
+				for (auto& [buildId, bldData] : dataMap)
+				{
+					int roofsize = (int)bldData.mapSurface.size();
+					if (roofsize == 0)	continue;
+
+					std::string strAzimuths = "";
+					for (auto val : bldData.mapSurface)
+					{
+						CSurfaceData roofData = val.second;
+						std::string strTemp = CStringEx::Format("%f,", roofData.azModDegree);
+						strAzimuths += strTemp;
+					}
+
+					// エリアID, メッシュID, 建物ID, 同一屋根面数, 方位角(平均値)・・・"
+					std::string strLine = CStringEx::Format("%s,%s,%s,%d,%s", areaId.c_str(), meshId.c_str(), buildId.c_str(), roofsize, strAzimuths.c_str());
+
+					file.WriteLineA(strLine);
+				}
 			}
-
-			// 建物ID, 同一屋根面数, 方位角(平均値)・・・"
-			std::string strLine = CStringEx::Format("%s,%s,%d,%s", meshId.c_str(), buildId.c_str(), roofsize, strAzimuths.c_str());
-
-			file.WriteLineA(strLine);
 		}
+
+		// 土地
+		if (m_pUIParam->bExecLand && result.pLandData)
+		{
+			CPotentialData& landData = *result.pLandData;
+
+			int size = (int)landData.mapSurface.size();
+			if (size != 0)
+			{
+				// エリアごとに方位角は同じになるので先頭データだけ出力
+				auto itr = landData.mapSurface.begin();
+				auto val = *itr;
+				std::string strAzimuths = CStringEx::Format("%f,", val.second.azModDegree);
+
+				// エリアID, メッシュID, 建物ID, 同一屋根面数, 方位角(平均値)・・・"
+				std::string strLine = CStringEx::Format("%s,%s,%s,%d,%s", areaId.c_str(), areaId.c_str(), areaId.c_str(), 1, strAzimuths.c_str());
+
+				file.WriteLineA(strLine);
+			}
+		}
+
 	}
 
 	file.Close();
@@ -1220,59 +2388,137 @@ bool CCalcSolarPotentialMng::outputAzimuthDataCSV()
 
 }
 
-
 // SHPに付与
-bool CCalcSolarPotentialMng::setTotalSolarRadiationToSHP()
+bool CCalcSolarPotentialMng::outputLandShape()
 {
-	return true;
+	if (m_pmapResultData->empty()) return false;
+	if (IsCancel())	return false;
 
+	// 解析対象ごとの出力先フォルダ名
+	std::wstring wstrAnalyzeTargetDir = GetDirName_AnalyzeTargetDir(eAnalyzeTarget::LAND);
+	if (wstrAnalyzeTargetDir.empty())	return false;
+
+	std::wstring wstrDir = GetFUtil()->Combine(wstrAnalyzeTargetDir, GetDirName_LandShape());
+	// フォルダを作成
+	if (!GetFUtil()->IsExistPath(wstrDir))
+	{
+		if (CreateDirectory(wstrDir.c_str(), NULL) == FALSE)
+		{
+			return false;
+		}
+	}
+
+	// shp作成
+	std::string strShpFilePath = CStringEx::ToString(GetFUtil()->Combine(wstrDir, GetFileName_SolarPotentialShp()));
+	SHPHandle hSHP = SHPCreate(strShpFilePath.c_str(), SHPT_POLYGON);
+	
+	// dbf作成
+	std::string strDbfFilePath = CFileUtil::ChangeFileNameExt(strShpFilePath, ".dbf");
+	DBFHandle hDBF = DBFCreate(strDbfFilePath.c_str());
+
+	// 属性
+	DBFAddField(hDBF, "AreaID", FTString, 255, 0);
+	DBFAddField(hDBF, "Name", FTString, 255, 0);
+	DBFAddField(hDBF, "面積", FTDouble, 11, 3);
+	DBFAddField(hDBF, "PV面積", FTInteger, 10, 0);
+	DBFAddField(hDBF, "日射量1", FTDouble, 11, 3);
+	DBFAddField(hDBF, "日射量2", FTDouble, 11, 3);
+	DBFAddField(hDBF, "発電量1", FTDouble, 11, 3);
+	DBFAddField(hDBF, "発電量2", FTDouble, 11, 3);
+
+	for (const auto& areaData : *m_pvecAllAreaList)
+	{
+		if (!areaData.analyzeLand)	continue;
+
+		CPotentialData* landData = (*m_pmapResultData)[areaData.areaID].pLandData;
+		if (!landData)	continue;
+
+		// ポリゴン作成
+		int nVertices = (int)areaData.pos2dList.size();
+		double* pX = new double[nVertices];
+		double* pY = new double[nVertices];
+		double* pZ = new double[nVertices];
+
+		for (int n = 0; n < nVertices; n++)
+		{
+			pX[n] = areaData.pos2dList[n].x;
+			pY[n] = areaData.pos2dList[n].y;
+			pZ[n] = 0.0;
+		}
+		
+		SHPObject* pSHPObj = SHPCreateSimpleObject(SHPT_POLYGON, nVertices, pX, pY, pZ);
+		SHPWriteObject(hSHP, -1, pSHPObj);
+
+		SHPDestroyObject(pSHPObj);
+		delete[] pX;
+		delete[] pY;
+		delete[] pZ;
+
+		// 属性書き込み
+		int iRecord = DBFGetRecordCount(hDBF);
+		DBFWriteStringAttribute(hDBF, iRecord, 0, areaData.areaID.c_str());
+		DBFWriteStringAttribute(hDBF, iRecord, 1, areaData.areaName.c_str());
+		DBFWriteDoubleAttribute(hDBF, iRecord, 2, landData->GetAllArea());
+		DBFWriteIntegerAttribute(hDBF, iRecord, 3, (int)landData->panelArea);
+		DBFWriteDoubleAttribute(hDBF, iRecord, 4, landData->solarRadiationTotal);
+		DBFWriteDoubleAttribute(hDBF, iRecord, 5, landData->solarRadiationUnit);
+		DBFWriteDoubleAttribute(hDBF, iRecord, 6, landData->solarPower);
+		DBFWriteDoubleAttribute(hDBF, iRecord, 7, landData->solarPowerUnit);
+	}
+
+	SHPClose(hSHP);
+	DBFClose(hDBF);
+
+
+	// cpgファイルを出力
+	std::string strCpgFilePath = CFileUtil::ChangeFileNameExt(strShpFilePath, ".cpg");
+	std::ofstream ofs(strCpgFilePath);
+	ofs << "SJIS" << endl;
+
+	return true;
 }
 
-// 建物の中心に入射光があたっているか
-bool CCalcSolarPotentialMng::IntersectRoofSurfaceCenter(
+// 対象面の中心に入射光があたっているか
+bool CCalcSolarPotentialMng::IntersectSurfaceCenter(
 	const CVector3D& inputVec,						// 入射光
-	const std::vector<CVector3D>& roofMesh,			// 対象の屋根BB
-	const std::string& strId,						// 対象の屋根ID
+	const std::vector<CVector3D>& surfaceBB,		// 対象面BB
+	const CVector3D& center,						// 対象面中心
+	const std::string& strId,						// 屋根面ID(建物のみ使用)
 	const vector<BLDGLIST>& neighborBuildings,		// 周辺の建物リスト
-	const vector<DEMLIST>& neighborDems				// 周辺の地形DEMリスト
+	const vector<CTriangle>& neighborDems			// 周辺の地形TINリスト
 )
 {
 	// 光線の有効距離
-	constexpr double LIGHT_LENGTH = 500.0;
+	const double LIGHT_LENGTH = GetINIParam()->GetNeighborBuildDist_SolarRad();
 
-	// 屋根メッシュの座標
-	CVector3D roofMeshPos;
-	for (const auto& mesh : roofMesh)
-		roofMeshPos += mesh;
-	roofMeshPos *= 0.25;	// 4点の平均
 	// 屋根メッシュの法線
 	CVector3D n;
 	CGeoUtil::OuterProduct(
-		CVector3D(roofMesh[1], roofMesh[0]),
-		CVector3D(roofMesh[2], roofMesh[1]), n);
+		CVector3D(surfaceBB[1], surfaceBB[0]),
+		CVector3D(surfaceBB[2], surfaceBB[1]), n);
 	if (n.z < 0) n *= -1;
 
-	// 屋根面メッシュの裏側から入射光が当たっているときは反射しないので解析終了
+	// 対象面の裏側から入射光が当たっているときは反射しないので解析終了
 	if (CGeoUtil::InnerProduct(n, inputVec) >= 0.0)
 		return false;
 
 	// 入射光の光源を算出
-	// 屋根メッシュ座標の延長線上500mに設定する
+	// 屋根メッシュ座標の延長線上に設定する
 	CVector3D inputInverseVec = CGeoUtil::Normalize(inputVec) * ((-1) * LIGHT_LENGTH);
-	CVector3D sunPos = roofMeshPos + inputInverseVec;
+	CVector3D sunPos = center + inputInverseVec;
 	CLightRay lightRay(sunPos, CGeoUtil::Normalize(inputVec) * LIGHT_LENGTH);
 
-	// 入射光が周りの建物に邪魔されずに屋根面に当たるかチェック
+	// 入射光が周りの建物に邪魔されずに対象面に当たるかチェック
 	if (intersectBuildings(lightRay, strId, neighborBuildings))
 	{
-		// 建物にあたっている場合は屋根メッシュに光線があたっていないので解析終了
+		// 建物にあたっている場合は光線があたっていないので解析終了
 		return false;
 	}
 
-	// 入射光が周りの地形に邪魔されずに建物に当たるかチェック
-	if (IsEnableDEMData() && roofMeshPos.z > GetINIParam()->GetDemHeight())
+	// 入射光が周りの地形に邪魔されずに対象面に当たるかチェック
+	if (IsEnableDEMData() || m_pUIParam->bExecLand)
 	{
-		if (intersectLandDEM(lightRay, neighborDems))
+		if (intersectLandDEM(lightRay, neighborDems, surfaceBB))
 		{
 			return false;
 		}
@@ -1290,6 +2536,8 @@ bool CCalcSolarPotentialMng::intersectBuildings(
 {
 	for (const auto& bldglist : buildingsList)
 	{
+		if (IsCancel())	return false;
+
 		// LOD2
 		const vector<BUILDINGS>& buildings = bldglist.buildingList;
 		for (const auto& building : buildings)
@@ -1300,6 +2548,7 @@ bool CCalcSolarPotentialMng::intersectBuildings(
 			}
 		}
 
+
 		// LOD1
 		const vector<BUILDINGSLOD1>& buildingsLOD1 = bldglist.buildingListLOD1;
 		for (const auto& building : buildingsLOD1)
@@ -1309,6 +2558,7 @@ bool CCalcSolarPotentialMng::intersectBuildings(
 				return true;
 			}
 		}
+
 	}
 
 	return false;
@@ -1414,14 +2664,12 @@ bool CCalcSolarPotentialMng::intersectBuilding(
 bool CCalcSolarPotentialMng::checkDistance(const CLightRay& lightRay, const vector<WALLSURFACES>& wallSurfaceList)
 {
 	// 光線が範囲内か判定する距離範囲
-	constexpr double LIGHT_LENGTH = 550.0; //余裕を持たせる
-	constexpr double SQUARE_LINGHT_LENGTH = LIGHT_LENGTH * LIGHT_LENGTH;
+	const double LIGHT_LENGTH = GetINIParam()->GetNeighborBuildDist_SolarRad() + 50;	//余裕を持たせる
+	const double SQUARE_LINGHT_LENGTH = LIGHT_LENGTH * LIGHT_LENGTH;
 
 	const CVector3D lightRayPos = lightRay.GetPos();
 	const CVector3D lightRayVec = lightRay.GetVector();
 
-	bool bDist = false;
-	bool bDirect = false;
 	for (const auto& wall : wallSurfaceList)
 	{
 		for (const auto& polygon : wall.wallSurfaceList)
@@ -1448,32 +2696,30 @@ bool CCalcSolarPotentialMng::checkDistance(const CLightRay& lightRay, const vect
 	return false;
 }
 
-// 対象建物に隣接するメッシュを取得
+// 隣接する建物を取得
 void CCalcSolarPotentialMng::GetNeighborBuildings(
-	const std::string& targetMeshId,
-	const CVector3D& bldCenter,
+	const CVector3D& center,
 	std::vector<BLDGLIST>& neighborBuildings
 )
 {
 	const double DIST = GetINIParam()->GetNeighborBuildDist_SolarRad();	// 隣接するBBoxの範囲[m]
 
 	// 建物中心XY
-	CVector2D bldCenterXY(bldCenter.x, bldCenter.y);
+	CVector2D CenterXY(center.x, center.y);
 
-	for (const auto& building : *m_pvecAllBuildList)
+	for (const auto& bldList : m_targetArea->neighborBldgList)
 	{
-		if (!isNeighborMesh(targetMeshId, building.meshID))	continue;
-
-		BLDGLIST tmpBldList = building;
+		BLDGLIST tmpBldList = *bldList;
 		tmpBldList.buildingList.clear();
 		tmpBldList.buildingListLOD1.clear();
 
 		// 範囲内にあるか
 		// LOD2
-		for (const auto& build : building.buildingList)
+		for (const auto& build : bldList->buildingList)
 		{
 			double bbBldMinX = DBL_MAX, bbBldMinY = DBL_MAX;
 			double bbBldMaxX = -DBL_MAX, bbBldMaxY = -DBL_MAX;
+			double dMaxH = -DBL_MAX;
 
 			// 建物全体のBBを求める
 			for (const auto& surface : build.roofSurfaceList)
@@ -1486,27 +2732,31 @@ void CCalcSolarPotentialMng::GetNeighborBuildings(
 						if (pos.y < bbBldMinY)	bbBldMinY = pos.y;
 						if (pos.x > bbBldMaxX)	bbBldMaxX = pos.x;
 						if (pos.y > bbBldMaxY)	bbBldMaxY = pos.y;
+						dMaxH = max(pos.z, dMaxH);
 					}
 				}
 			}
 
+			// 対象より低い建物は除外
+			if (center.z > dMaxH)	continue;
+
 			double buildCenterX = ((int64_t)bbBldMaxX + (int64_t)bbBldMinX) * 0.5;
 			double buildCenterY = ((int64_t)bbBldMaxY + (int64_t)bbBldMinY) * 0.5;
 			// 中心同士の距離
-			double tmpdist = bldCenterXY.Distance(buildCenterX, buildCenterY);
+			double tmpdist = CenterXY.Distance(buildCenterX, buildCenterY);
 			// DIST以内の距離のとき近隣とする
 			if (tmpdist <= DIST)
 			{
 				tmpBldList.buildingList.emplace_back(build);
-				continue;
 			}
 		}
 
 		// LOD1
-		for (const auto& build : building.buildingListLOD1)
+		for (const auto& build : bldList->buildingListLOD1)
 		{
 			double bbBldMinX = DBL_MAX, bbBldMinY = DBL_MAX;
 			double bbBldMaxX = -DBL_MAX, bbBldMaxY = -DBL_MAX;
+			double dMaxH = -DBL_MAX;
 
 			// 建物全体のBBを求める
 			for (const auto& wall : build.wallSurfaceList)
@@ -1519,19 +2769,22 @@ void CCalcSolarPotentialMng::GetNeighborBuildings(
 						if (pos.y < bbBldMinY)	bbBldMinY = pos.y;
 						if (pos.x > bbBldMaxX)	bbBldMaxX = pos.x;
 						if (pos.y > bbBldMaxY)	bbBldMaxY = pos.y;
+						dMaxH = max(pos.z, dMaxH);
 					}
 				}
 			}
 
+			// 対象より低い建物は除外
+			if (center.z > dMaxH)	continue;
+
 			double buildCenterX = ((int64_t)bbBldMaxX + (int64_t)bbBldMinX) * 0.5;
 			double buildCenterY = ((int64_t)bbBldMaxY + (int64_t)bbBldMinY) * 0.5;
 			// 中心同士の距離
-			double tmpdist = bldCenterXY.Distance(buildCenterX, buildCenterY);
+			double tmpdist = CenterXY.Distance(buildCenterX, buildCenterY);
 			// DIST以内の距離のとき近隣とする
 			if (tmpdist <= DIST)
 			{
 				tmpBldList.buildingListLOD1.emplace_back(build);
-				continue;
 			}
 		}
 
@@ -1542,52 +2795,42 @@ void CCalcSolarPotentialMng::GetNeighborBuildings(
 
 }
 
-// 対象建物に隣接するDEMを取得
+// 隣接するDEMを取得
 void CCalcSolarPotentialMng::GetNeighborDems(
-	const std::string& targetMeshId,
-	const CVector3D& bldCenter,
-	std::vector<DEMLIST>& neighborDems
+	const CVector3D& center,
+	std::vector<CTriangle>& neighborDems,
+	eAnalyzeTarget target
 )
 {
-	// 除外判定
-	if (bldCenter.z < GetINIParam()->GetDemHeight())	return;
-
 	const double DIST = GetINIParam()->GetDemDist();	// 対象範囲[m]
 
-	// 建物中心XY
-	CVector2D bldCenterXY(bldCenter.x, bldCenter.y);
+	// 中心XY
+	CVector2D CenterXY(center.x, center.y);
 
-	for (const auto& dem : *m_pvecAllDemList)
+	// 除外するDEM高さ
+	double demHeight = target == eAnalyzeTarget::ROOF ? GetINIParam()->GetDemHeight_Build() : GetINIParam()->GetDemHeight_Land();
+
+	for (const auto& member : m_targetArea->neighborDemList)
 	{
-		if (isNeighborMesh(targetMeshId, dem.meshID))
+		for (const auto& triangle : member->posTriangleList)
 		{
-			DEMLIST targetDem;
-			targetDem.meshID = dem.meshID;
-			targetDem.posTriangleList.clear();
+			// XY平面の重心を求める
+			double x = (triangle.posTriangle[0].x + triangle.posTriangle[1].x + triangle.posTriangle[2].x) / 3.0;
+			double y = (triangle.posTriangle[0].y + triangle.posTriangle[1].y + triangle.posTriangle[2].y) / 3.0;
+			double z = (triangle.posTriangle[0].z + triangle.posTriangle[1].z + triangle.posTriangle[2].z) / 3.0;
+			if (z < demHeight)	continue;
 
-			for (const auto& triangle : dem.posTriangleList)
+			double tmpdist = CenterXY.Distance(x, y);
+
+			bool bAddList = false;
+
+			// 判定
+			if (tmpdist <= DIST &&		// 中心との距離が対象範囲内
+				center.z < z)			// 中心より高い位置にある
 			{
-				// XY平面の重心を求める
-				double x = (triangle.posTriangle[0].x + triangle.posTriangle[1].x + triangle.posTriangle[2].x) / 3.0;
-				double y = (triangle.posTriangle[0].y + triangle.posTriangle[1].y + triangle.posTriangle[2].y) / 3.0;
-				double z = (triangle.posTriangle[0].z + triangle.posTriangle[1].z + triangle.posTriangle[2].z) / 3.0;
-
-				double tmpdist = bldCenterXY.Distance(x, y);
-
-				bool bAddList = false;
-
-				// 判定
-				if (tmpdist <= DIST &&	// 対象の建物(中心)との距離が対象範囲内
-					bldCenter.z < z)	// 対象の建物(中心)より高い位置にある
-				{
-					targetDem.posTriangleList.emplace_back(triangle);
-				}
+				neighborDems.emplace_back(triangle);
 			}
-
-			// 対象範囲で間引いたDEMを追加する
-			neighborDems.emplace_back(targetDem);
 		}
-
 	}
 }
 
@@ -1595,8 +2838,8 @@ void CCalcSolarPotentialMng::GetNeighborDems(
 // 地形に光線があたっているかどうか
 bool CCalcSolarPotentialMng::intersectLandDEM(
 	const CLightRay& lightRay,					// 光線
-	//const double& height,						// 屋根標高
-	const vector<DEMLIST>& demList				// 光線があたっているかチェックする地形のDEM
+	const vector<CTriangle>& tinList,			// 光線があたっているかチェックする地形のTIN
+	const std::vector<CVector3D>& surfaceBB		// 対象面のBB
 )
 {
 	double tempDist;
@@ -1605,42 +2848,65 @@ bool CCalcSolarPotentialMng::intersectLandDEM(
 	const CVector3D lightRayPos = lightRay.GetPos();
 	const CVector3D lightRayVec = lightRay.GetVector();
 
-	for (const auto& dem : demList)
+	// 光線が範囲内か判定する距離範囲
+	const double LIGHT_LENGTH = GetINIParam()->GetNeighborBuildDist_SolarRad() + 50;	//余裕を持たせる
+	const double SQUARE_LINGHT_LENGTH = LIGHT_LENGTH * LIGHT_LENGTH;
+
+	// 内外判定用に対象面のポリゴンを作成
+	CPoint2DPolygon surfacePolygon;
+	for (int i = 0; i < surfaceBB.size(); i++)
 	{
-		for (const auto& triangle : dem.posTriangleList)
+		CPoint2D p2D = CPoint2D(surfaceBB[i].x, surfaceBB[i].y);
+		surfacePolygon.Add(p2D);
+	}
+
+	for (const auto& triangle : tinList)
+	{
+		if (IsCancel())		return false;
+
+		// 内外判定用にTINのポリゴンを作成
+		CPoint2DPolygon tinPolygon;
+
+		bool bDirect = false;
+		for (const auto& pos : triangle.posTriangle)
 		{
-			if (IsCancel())		return false;
+			double dx = pos.x - lightRayPos.x;
+			double dy = pos.y - lightRayPos.y;
+			double dz = pos.z - lightRayPos.z;
 
-			vector<CVector3D> posList;
+			CPoint2D p2D = CPoint2D(pos.x, pos.y);
+			tinPolygon.Add(p2D);
 
-			posList.emplace_back(CVector3D(triangle.posTriangle[0].x, triangle.posTriangle[0].y, triangle.posTriangle[0].z));
-			posList.emplace_back(CVector3D(triangle.posTriangle[1].x, triangle.posTriangle[1].y, triangle.posTriangle[1].z));
-			posList.emplace_back(CVector3D(triangle.posTriangle[2].x, triangle.posTriangle[2].y, triangle.posTriangle[2].z));
+			// 平面の頂点が逆方向にあるときは範囲外とする
+			double dot = CGeoUtil::InnerProduct(lightRayVec, CVector3D(dx, dy, dz));
+			if (dot < 0.0)	continue;
 
-			bool bDirect = false;
-			for (const auto& pos : triangle.posTriangle)
-			{
-				double dx = pos.x - lightRayPos.x;
-				double dy = pos.y - lightRayPos.y;
-				double dz = pos.z - lightRayPos.z;
+			// 距離が遠すぎないかチェック
+			double len = calcLength(dx, dy, dz);
+			if (len > SQUARE_LINGHT_LENGTH)	continue;
 
-				// 平面の頂点が逆方向にあるときは範囲外とする
-				double dot = CGeoUtil::InnerProduct(lightRayVec, CVector3D(dx, dy, dz));
-				if (dot > 0.0)
-				{
-					bDirect = true;
-					break;
-				}
-			}
-			if (!bDirect)	continue;
-
-			// 光線とポリゴンの交点を探す
-			if (lightRay.Intersect(posList, &tempTargetPos, &tempDist))
-			{
-				return true;
-			}
-
+			bDirect = true;
 		}
+		if (!bDirect)	continue;
+
+		// 対象面の範囲内にあるTINは除外
+		CPoint2DPolygon tmpPolygon;
+		if (surfacePolygon.GetCrossingPolygon(tinPolygon, tmpPolygon))
+		{
+			continue;
+		}
+
+		vector<CVector3D> posList;
+		posList.emplace_back(CVector3D(triangle.posTriangle[0].x, triangle.posTriangle[0].y, triangle.posTriangle[0].z));
+		posList.emplace_back(CVector3D(triangle.posTriangle[1].x, triangle.posTriangle[1].y, triangle.posTriangle[1].z));
+		posList.emplace_back(CVector3D(triangle.posTriangle[2].x, triangle.posTriangle[2].y, triangle.posTriangle[2].z));
+
+		// 光線とポリゴンの交点を探す
+		if (lightRay.Intersect(posList, &tempTargetPos, &tempDist))
+		{
+			return true;
+		}
+
 	}
 
 	return false;
@@ -1648,85 +2914,14 @@ bool CCalcSolarPotentialMng::intersectLandDEM(
 
 bool CCalcSolarPotentialMng::IsCancel()
 {
-	return GetFUtil()->IsExistPath(m_strCancelFilePath);
+	if (!m_isCancel)
+	{
+		m_isCancel = GetFUtil()->IsExistPath(m_strCancelFilePath);
+	}
+	return m_isCancel;
 }
 
 bool CCalcSolarPotentialMng::IsEnableDEMData()
 {
-	return m_pUIParam->bEnableDEMData;
-}
-
-// 3次メッシュが隣接(周囲8方向)しているか
-bool CCalcSolarPotentialMng::isNeighborMesh(const std::string& meshId1, const std::string& meshId2)
-{
-	bool bret = false;
-
-	// 同じメッシュ
-	if (meshId1 == meshId2)
-	{
-		return true;
-	}
-
-	// 下2桁の数字からメッシュの位置パターンを判定
-	bool bTop = (meshId1.substr(6, 1) == "9") ? true : false;		// 7桁目が9なら北側
-	bool bBottom = (meshId1.substr(6, 1) == "0") ? true : false;	// 7桁目が0なら南側
-	bool bLeft = (meshId1.substr(7, 1) == "0") ? true : false;		// 8桁目が9なら西側
-	bool bRight = (meshId1.substr(7, 1) == "9") ? true : false;		// 8桁目が9なら東側
-
-	int nRet = 0;
-
-	//北
-	if (bTop) nRet = (stoi(meshId1) + 1000 - 90);
-	else      nRet = (stoi(meshId1) + 10);
-	std::string strId_N = CStringEx::Format("%d", nRet);
-
-	//南
-	if (bBottom) nRet = (stoi(meshId1) - 1000 + 90);
-	else      nRet = (stoi(meshId1) - 10);
-	std::string strId_S = CStringEx::Format("%d", nRet);
-
-	//東
-	if (bRight) nRet = (stoi(meshId1) + 100 - 9);
-	else      nRet = (stoi(meshId1) + 1);
-	std::string strId_E = CStringEx::Format("%d", nRet);
-
-	//西
-	if (bLeft) nRet = (stoi(meshId1) - 100 + 9);
-	else      nRet = (stoi(meshId1) - 1);
-	std::string strId_W = CStringEx::Format("%d", nRet);
-
-	//北東
-	if (bTop && bRight) nRet = (stoi(meshId1) + 1000 + 1);
-	else if (bRight) nRet = (stoi(strId_E) + 10);
-	else      nRet = (stoi(strId_N) + 1);
-	std::string strId_NE = CStringEx::Format("%d", nRet);
-
-	//南東
-	if (bBottom && bRight) nRet = (stoi(strId_S) + 100 - 9);
-	else if (bRight) nRet = (stoi(strId_E) - 10);
-	else      nRet = (stoi(strId_S) + 1);
-	std::string strId_SE = CStringEx::Format("%d", nRet);
-
-	//南西
-	if (bBottom && bLeft) nRet = (stoi(meshId1) - 1000 - 1);
-	else if (bLeft) nRet = (stoi(strId_W) - 10);
-	else      nRet = (stoi(strId_S) - 1);
-	std::string strId_SW = CStringEx::Format("%d", nRet);
-
-	//北西
-	if (bTop && bLeft) nRet = (stoi(strId_N) - 100 + 9);
-	else if (bLeft) nRet = (stoi(strId_W) + 10);
-	else      nRet = (stoi(strId_N) - 1);
-	std::string strId_NW = CStringEx::Format("%d", nRet);
-
-	if (strId_N == meshId2)			return true;
-	else if (strId_S == meshId2)	return true;
-	else if (strId_E == meshId2)	return true;
-	else if (strId_W == meshId2)	return true;
-	else if (strId_NE == meshId2)	return true;
-	else if (strId_SE == meshId2)	return true;
-	else if (strId_SW == meshId2)	return true;
-	else if (strId_NW == meshId2)	return true;
-
-	return false;
+	return m_pUIParam->pInputData->bUseDemData;
 }

@@ -28,6 +28,21 @@
     <Filter Include="2_SHP関連\shapelib-1.5.0">
       <UniqueIdentifier>{12ee9e23-e501-4857-845c-9287a33ab89c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="5_OpenCV">
+      <UniqueIdentifier>{c9ad85fe-5e88-4eea-ad47-63da6186f716}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="5_OpenCV\x64">
+      <UniqueIdentifier>{9a423fc2-c843-4e8d-968c-32cbe4f279ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="5_OpenCV\x64\include">
+      <UniqueIdentifier>{549e93cc-9bc4-4b39-8492-7eed67793e39}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="5_OpenCV\x64\lib">
+      <UniqueIdentifier>{eaeb76f1-d189-4121-80ac-a0fbbfab0252}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="5_OpenCV\x64\dll">
+      <UniqueIdentifier>{1b859366-1ac1-43da-bd94-3679beaf2b01}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -84,6 +99,69 @@
     <ClInclude Include="lib\shapelib-1.5.0\shapefil.h">
       <Filter>2_SHP関連\shapelib-1.5.0</Filter>
     </ClInclude>
+    <ClInclude Include="CPoint2DPolygon.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\imgproc.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\ml.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\objdetect.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\opencv.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\opencv_modules.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\photo.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\stitching.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\video.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\videoio.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\world.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\calib3d.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\core.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\cvconfig.h">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\dnn.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\features2d.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\flann.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\gapi.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\highgui.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\opencv\x64\include\opencv2\imgcodecs.hpp">
+      <Filter>5_OpenCV\x64\include</Filter>
+    </ClInclude>
+    <ClInclude Include="ExitCode.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -125,6 +203,9 @@
     <ClCompile Include="CGeoid.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="CPoint2DPolygon.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="lib\shapelib-1.5.0\shapelib.dll">
@@ -132,6 +213,12 @@
     </None>
     <None Include="lib\shapelib-1.5.0\shapelib_i.exp">
       <Filter>2_SHP関連\shapelib-1.5.0</Filter>
+    </None>
+    <None Include="lib\opencv\x64\bin\opencv_world4100.dll">
+      <Filter>5_OpenCV\x64\dll</Filter>
+    </None>
+    <None Include="lib\opencv\x64\bin\opencv_world4100d.dll">
+      <Filter>5_OpenCV\x64\dll</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -141,5 +228,16 @@
     <Library Include="lib\shapelib-1.5.0\shapelib_i.lib">
       <Filter>2_SHP関連\shapelib-1.5.0</Filter>
     </Library>
+    <Library Include="lib\opencv\x64\lib\opencv_world4100d.lib">
+      <Filter>5_OpenCV\x64\lib</Filter>
+    </Library>
+    <Library Include="lib\opencv\x64\lib\opencv_world4100.lib">
+      <Filter>5_OpenCV\x64\lib</Filter>
+    </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="lib\opencv\LICENSE.txt">
+      <Filter>5_OpenCV</Filter>
+    </Text>
   </ItemGroup>
 </Project>

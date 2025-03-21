@@ -1,0 +1,166 @@
+﻿<Page x:Class="SolarPotential.PageJudgeParams"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:SolarPotential"
+      mc:Ignorable="d">
+
+	<ScrollViewer x:Name="scrollViewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+		<Grid>
+			<Grid.RowDefinitions>
+				<RowDefinition/>
+				<RowDefinition/>
+				<RowDefinition/>
+			</Grid.RowDefinitions>
+			<StackPanel Grid.Row="0">
+				<TextBlock FontSize="24" Text="■ 適地判定条件設定" Margin="10,10,0,0" FontWeight="Bold"/>
+				<TextBlock FontSize="20" Text="太陽光パネルの設置の優先度が低い建物・土地の除外条件" Margin="15,5,0,0" FontWeight="Bold"/>
+				<TextBlock FontSize="16" Text="設定した条件の建物・土地は判定対象から除外されます。" Margin="20,5"/>
+				<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+					<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+						<CheckBox x:Name="LowerPotentialCheckBox" Content="日射量が少ない建物・土地を除外"/>
+						<StackPanel IsEnabled="{Binding ElementName=LowerPotentialCheckBox, Path=IsChecked}" Margin="10, 5">
+							<StackPanel Margin="10, 0" Orientation="Horizontal">
+								<CheckBox x:Name="PotentialCheckBox" Content="日射量" VerticalAlignment="Center"/>
+								<StackPanel IsEnabled="{Binding IsChecked, ElementName=PotentialCheckBox}" Margin="10, 0" Orientation="Horizontal">
+									<TextBox x:Name="PotentialVal" Width="100" BorderBrush="#000000" BorderThickness="2"></TextBox>
+									<TextBlock VerticalAlignment="Center" Margin="5, 0">kWh/㎡未満</TextBlock>
+								</StackPanel>
+							</StackPanel>
+							<StackPanel IsEnabled="{Binding ElementName=CheckBoxLowPotential, Path=IsChecked}" HorizontalAlignment="Left" Margin="10, 5" Orientation="Horizontal">
+								<CheckBox x:Name="LowerPercentCheckBox" Content="下位" VerticalAlignment="Center"/>
+								<StackPanel IsEnabled="{Binding IsChecked, ElementName=LowerPercentCheckBox}" Margin="10, 0" Orientation="Horizontal">
+									<TextBox x:Name="PotentialPercentVal" Width="100" BorderBrush="#000000" BorderThickness="2"></TextBox>
+									<TextBlock VerticalAlignment="Center" Margin="5, 0">%</TextBlock>
+								</StackPanel>
+							</StackPanel>
+						</StackPanel>
+					</StackPanel>
+					<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+						<CheckBox x:Name="BuildStructuresCheckBox" Content="建物構造による除外"/>
+						<Border IsEnabled="{Binding IsChecked, ElementName=BuildStructuresCheckBox}" BorderBrush="Gray" BorderThickness="1" Margin="10, 5" Padding="3">
+							<Grid>
+								<Grid.RowDefinitions>
+									<RowDefinition/>
+									<RowDefinition/>
+								</Grid.RowDefinitions>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition/>
+									<ColumnDefinition/>
+									<ColumnDefinition/>
+									<ColumnDefinition/>
+								</Grid.ColumnDefinitions>
+								<CheckBox x:Name="WoodCheckBox" Grid.Row="0" Grid.Column="0" Content="木造・土蔵造" Margin="5"/>
+								<CheckBox x:Name="SteelReinforcedConcreteCheckBox" Grid.Row="0" Grid.Column="1" Content="鉄骨鉄筋コンクリート造" Margin="5"/>
+								<CheckBox x:Name="ReinforcedConcreteCheckBox" Grid.Row="0" Grid.Column="2" Content="鉄筋コンクリート造" Margin="5"/>
+								<CheckBox x:Name="SteelCheckBox" Grid.Row="0" Grid.Column="3" Content="鉄骨造" Margin="5"/>
+								<CheckBox x:Name="LightGaugeSteelCheckBox" Grid.Row="1" Grid.Column="0" Content="軽量鉄骨造" Margin="5"/>
+								<CheckBox x:Name="MasonryConstructionCheckBox" Grid.Row="1" Grid.Column="1" Content="レンガ造・コンクリートブロック造・石造" Margin="5"/>
+								<CheckBox x:Name="UnknownCheckBox" Grid.Row="1" Grid.Column="2" Content="不明" Margin="5"/>
+								<CheckBox x:Name="NonWoodCheckBox" Grid.Row="2" Grid.Column="3" Content="非木造" Margin="5"/>
+							</Grid>
+						</Border>
+					</StackPanel>
+					<StackPanel HorizontalAlignment="Left" Margin="10, 5">
+						<CheckBox x:Name="BuildFloorCheckBox" Content="特定の階数の建物を除外"/>
+						<StackPanel IsEnabled="{Binding IsChecked, ElementName=BuildFloorCheckBox}" Margin="10, 5" Orientation="Horizontal">
+							<TextBox x:Name="FloorsBelowVal" Width="70" BorderBrush="#000000" BorderThickness="2" Margin="10, 5"></TextBox>
+							<TextBlock  VerticalAlignment="Center">階以下</TextBlock>
+							<TextBox x:Name="UpperFloorsVal" Width="70" BorderBrush="#000000" BorderThickness="2" Margin="10, 5"></TextBox>
+							<TextBlock VerticalAlignment="Center">階以上</TextBlock>
+						</StackPanel>
+					</StackPanel>
+				</StackPanel>
+			</StackPanel>
+			<StackPanel Grid.Row="1">
+				<TextBlock  FontSize="20" Text="災害時に太陽光パネルが破損、消失する危険性のある建物・土地の除外条件" Margin="15,5,0,0" FontWeight="Bold"/>
+				<CheckBox x:Name="BelowTsunamiHeightCheckBox" Content="設置高さが想定される最大津波高さを下回る建物・土地を除外" Margin="20, 10, 0, 5" />
+				<CheckBox x:Name="BelowFloodDepthCheckBox" Content="設置高さが想定される河川浸水想定浸水深を下回る建物・土地を除外" Margin="20, 5" />
+				<CheckBox x:Name="LandslideWarningAreaCheckBox" Content="土砂災害警戒区域内に存在する建物・土地を除外" Margin="20, 5" />
+				<StackPanel HorizontalAlignment="Left" Margin="20, 5">
+					<CheckBox x:Name="WeatherDataCheckBox" Content="気象データ(積雪)" />
+					<StackPanel IsEnabled="{Binding IsChecked, ElementName=WeatherDataCheckBox}" Margin="20, 5" Orientation="Horizontal">
+						<TextBox x:Name="WeatherDataPath" Width="400" BorderBrush="#000000" BorderThickness="2"></TextBox>
+						<Button Content="選択" Width="100" Margin="10, 0" VerticalAlignment="Center" Click="WeatherDataPathButton_Click"></Button>
+					</StackPanel>
+					<StackPanel IsEnabled="{Binding IsChecked, ElementName=WeatherDataCheckBox}" Margin="20, 5" Orientation="Horizontal">
+						<RadioButton x:Name="SnowDepthRadio" GroupName="SnowRadioGroup" Content="積雪が多い地域の建物・土地を除外" VerticalAlignment="Center"/>
+						<StackPanel IsEnabled="{Binding ElementName=SnowDepthRadio, Path=IsChecked}" Margin="20, 0" Orientation="Horizontal">
+							<TextBox x:Name="SnowDepthVal" Width="70" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+							<TextBlock  VerticalAlignment="Center">cm以上</TextBlock>
+						</StackPanel>
+					</StackPanel>
+					<StackPanel IsEnabled="{Binding IsChecked, ElementName=WeatherDataCheckBox}" Margin="20, 5" Orientation="Horizontal">
+						<RadioButton x:Name="SnowLoadRadio" GroupName="SnowRadioGroup" Content="積雪荷重が大きい建物・土地を除外" VerticalAlignment="Center"/>
+						<StackPanel IsEnabled="{Binding ElementName=SnowLoadRadio, Path=IsChecked}" Margin="20, 0" Orientation="Horizontal">
+							<TextBox x:Name="SnowLoadVal" Width="70" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+							<TextBlock  VerticalAlignment="Center">(kgf/㎡)以上 = 年最深積雪量 ×</TextBlock>
+							<TextBox x:Name="SnowLoadUnitVal" Width="70" BorderBrush="#000000" BorderThickness="2" Margin="10, 0"></TextBox>
+							<TextBlock  VerticalAlignment="Center">N/㎡</TextBlock>
+						</StackPanel>
+					</StackPanel>
+				</StackPanel>
+				<StackPanel Grid.Row="2">
+					<TextBlock  FontSize="20" Text="太陽光パネルの設置に制限がある範囲の設定" Margin="15,5" FontWeight="Bold"/>
+					<Grid Margin="20, 5" Width="Auto">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="20"/>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Grid.Row="0" Grid.Column="1" Text="制限を設ける範囲のシェープファイル" Margin="5"/>
+						<TextBlock Grid.Row="0" Grid.Column="2" Text="パネル設置高さ"/>
+						<TextBlock Grid.Row="0" Grid.Column="3" Text="パネル設置面の方位"/>
+						<TextBlock Grid.Row="0" Grid.Column="4" Text="座標系" HorizontalAlignment="Center"/>
+						<CheckBox Grid.Row="1" Grid.Column="0" x:Name="RestrictAreaCheckBox1" VerticalAlignment="Center"/>
+						<StackPanel Grid.Row="1" Grid.Column="1" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox1}" Orientation="Horizontal" Margin="5">
+							<TextBox x:Name="RestrictAreaPath1" Width="300" BorderBrush="#000000" BorderThickness="2"></TextBox>
+							<Button Content="選択" Click="RestrictAreaButton1_Click" Width="70"  VerticalAlignment="Center" Margin="5, 0"></Button>
+						</StackPanel>
+						<StackPanel Grid.Row="1" Grid.Column="2" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox1}" Orientation="Horizontal" Margin="5">
+							<TextBox x:Name="RestrictHeight1" Width="70" BorderBrush="#000000" BorderThickness="2"></TextBox>
+							<TextBlock VerticalAlignment="Center" Margin="5, 0">m以上</TextBlock>
+						</StackPanel>
+						<ComboBox x:Name="RestrictAreaDirectionCombo1" Grid.Row="1" Grid.Column="3" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox1}" Margin="5, 0" VerticalAlignment="Center"></ComboBox>
+						<ComboBox x:Name="ShpDatumCombo1" Grid.Row="1" Grid.Column="4" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox1}" Margin="5, 0" VerticalAlignment="Center"></ComboBox>
+
+						<CheckBox Grid.Row="2" Grid.Column="0" x:Name="RestrictAreaCheckBox2" VerticalAlignment="Center"/>
+						<StackPanel Grid.Row="2" Grid.Column="1" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox2}" Orientation="Horizontal" Margin="5">
+							<TextBox x:Name="RestrictAreaPath2" Width="300" BorderBrush="#000000" BorderThickness="2"></TextBox>
+							<Button Content="選択" Click="RestrictAreaButton2_Click" Width="70"  VerticalAlignment="Center" Margin="5, 0"></Button>
+						</StackPanel>
+						<StackPanel Grid.Row="2" Grid.Column="2" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox2}" Orientation="Horizontal" Margin="5">
+							<TextBox x:Name="RestrictHeight2" Width="70" BorderBrush="#000000" BorderThickness="2"></TextBox>
+							<TextBlock VerticalAlignment="Center" Margin="5, 0">m以上</TextBlock>
+						</StackPanel>
+						<ComboBox x:Name="RestrictAreaDirectionCombo2" Grid.Row="2" Grid.Column="3" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox2}" Margin="5, 0" VerticalAlignment="Center"></ComboBox>
+						<ComboBox x:Name="ShpDatumCombo2" Grid.Row="2" Grid.Column="4" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox2}" Margin="5, 0" VerticalAlignment="Center"></ComboBox>
+
+						<CheckBox Grid.Row="3" Grid.Column="0" x:Name="RestrictAreaCheckBox3" VerticalAlignment="Center"/>
+						<StackPanel Grid.Row="3" Grid.Column="1" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox3}" Orientation="Horizontal" Margin="5">
+							<TextBox x:Name="RestrictAreaPath3" Width="300" BorderBrush="#000000" BorderThickness="2"></TextBox>
+							<Button Content="選択" Click="RestrictAreaButton3_Click" Width="70"  VerticalAlignment="Center" Margin="5, 0"></Button>
+						</StackPanel>
+						<StackPanel Grid.Row="3" Grid.Column="2" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox3}" Orientation="Horizontal" Margin="5">
+							<TextBox x:Name="RestrictHeight3" Width="70" BorderBrush="#000000" BorderThickness="2"></TextBox>
+							<TextBlock VerticalAlignment="Center" Margin="5, 0">m以上</TextBlock>
+						</StackPanel>
+						<ComboBox x:Name="RestrictAreaDirectionCombo3" Grid.Row="3" Grid.Column="3" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox3}" Margin="5, 0" VerticalAlignment="Center"></ComboBox>
+						<ComboBox x:Name="ShpDatumCombo3" Grid.Row="3" Grid.Column="4" IsEnabled="{Binding IsChecked, ElementName=RestrictAreaCheckBox3}" Margin="5, 0" VerticalAlignment="Center"></ComboBox>
+					</Grid>
+
+				</StackPanel>
+			</StackPanel>
+		</Grid>
+	</ScrollViewer>
+</Page>
+ 

@@ -1,18 +1,29 @@
 #include "pch.h"
 #include "ReflectionSimulatorMesh.h"
 #include <CommonUtil/ReadINIParam.h>
+#include <filesystem>
 
 using namespace std;
+
+CReflectionSimulatorMesh::CReflectionSimulatorMesh(CUIParam* pUIParam)
+	: m_pParam(pUIParam)
+{
+
+}
+
+CReflectionSimulatorMesh::~CReflectionSimulatorMesh()
+{
+
+}
 
 bool CReflectionSimulatorMesh::Exec(
 	const CVector3D& inputVec,
 	const vector<CVector3D>& roofMesh,
-	const BUILDINGS& building,
 	const std::vector<BLDGLIST>& buildingsList
 )
 {
 	// 光線の有効距離
-	const double LIGHT_LENGTH = GetINIParam()->GetNeighborBuildDist_Reflection();
+	const double LIGHT_LENGTH = m_pParam->pReflectionParam->dReflectionRange;
 
 	// 屋根メッシュの座標
 	CVector3D roofMeshPos;
@@ -43,6 +54,12 @@ bool CReflectionSimulatorMesh::Exec(
 		return false;	// 屋根メッシュに光線があたっていないので解析終了
 	}
 
+	// キャンセル
+	if (IsCancel())
+	{
+		return false;
+	}
+
 	// 反射光
 	CLightRay reflectedLightRay = lightRay.Reflect(roofMeshPos, n);
 
@@ -61,6 +78,12 @@ bool CReflectionSimulatorMesh::Exec(
 		m_reflectionMesh.reflectionPosList = targetPosList;
 
 		return true;
+	}
+
+	// キャンセル
+	if (IsCancel())
+	{
+		return false;
 	}
 
 	return false;
@@ -94,6 +117,12 @@ bool CReflectionSimulatorMesh::IntersectBuildings(
 		const vector<BUILDINGS>& buildings = bldglist.buildingList;
 		for (const auto& building : buildings)
 		{
+			// キャンセル
+			if (IsCancel())
+			{
+				return false;
+			}
+
 			// 壁面と屋根面のリスト
 			vector<SURFACEMEMBERS> surfaceList;
 			// 壁面
@@ -123,6 +152,12 @@ bool CReflectionSimulatorMesh::IntersectBuildings(
 		const vector<BUILDINGSLOD1>& buildingsLOD1 = bldglist.buildingListLOD1;
 		for (const auto& building : buildingsLOD1)
 		{
+			// キャンセル
+			if (IsCancel())
+			{
+				return false;
+			}
+
 			// 壁面のリスト
 			vector<SURFACEMEMBERS> surfaceList;
 			for (const auto& wall : building.wallSurfaceList)
@@ -206,7 +241,7 @@ bool CReflectionSimulatorMesh::CheckDistance(
 )
 {
 	// 光線が範囲内か判定する距離範囲
-	const double LIGHT_LENGTH = GetINIParam()->GetNeighborBuildDist_Reflection() + 50;//余裕を持たせる
+	const double LIGHT_LENGTH = m_pParam->pReflectionParam->dReflectionRange;	// 隣接するBBoxの範囲[m]
 
 	for (const auto& polygon : surfaceList)
 	{
@@ -248,6 +283,25 @@ bool CReflectionSimulatorMesh::CheckDistance(
 		bDist = true;
 
 	if (bDirect && bDist)
+		return true;
+
+	return false;
+}
+
+// キャンセルチェック
+bool CReflectionSimulatorMesh::IsCancel()
+{
+	assert(m_pParam);
+
+	// キャンセルファイルのディレクトリパス
+	filesystem::path filepath = m_pParam->strOutputDirPath;
+	filepath = filepath.parent_path().parent_path();
+
+	// キャンセルファイルのパス
+	filepath /= CANCELFILE;
+	string cancelPath = filepath.string();
+
+	if (std::filesystem::exists(cancelPath))
 		return true;
 
 	return false;

@@ -6,10 +6,14 @@
 #include <CommonUtil/CLightRay.h>
 #include "AnalysisReflectionMesh.h"
 #include "AnalyzeData.h"
+#include "UIParam.h"
 
 class CReflectionSimulatorMesh
 {
 public:
+	CReflectionSimulatorMesh(CUIParam* pUIParam);
+	virtual ~CReflectionSimulatorMesh();
+
 	// 反射光が建物にあたるか解析する。
 	// あたっているときはtrueを返す。
 	// あたっている解析結果はGetResult()で取得できる型で確認できる。
@@ -18,7 +22,7 @@ public:
 	bool Exec(
 		const CVector3D& inputVec,					// 入射光
 		const vector<CVector3D>& roofMesh, 			// 入射屋根メッシュ
-		const BUILDINGS& building,					// 屋根メッシュがある建物
+		//const BUILDINGS& building,					// 屋根メッシュがある建物
 		const std::vector<BLDGLIST>& buildingsList	// 反射光があたるか調べる建物
 	);
 
@@ -29,6 +33,7 @@ public:
 private:
 	CAnalysisReflectionMesh m_reflectionMesh;	// 解析結果
 
+	CUIParam* m_pParam;
 
 	// 光線が建物群にあたっているかどうか
 	bool IntersectBuildings(
@@ -54,4 +59,8 @@ private:
 
 	// 指定点が光源から光線方向の範囲内にあるかチェック
 	bool CheckDistance(const CLightRay& lightRay, const CPointBase& pos, const double& dist);
+
+	// キャンセルチェック
+	bool IsCancel();
+
 };

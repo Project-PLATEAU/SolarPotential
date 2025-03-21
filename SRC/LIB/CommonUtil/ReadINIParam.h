@@ -20,7 +20,8 @@ public:
 	double				GetTransmissivity(const int& month);	// 大気透過率(P)
 	double				GetReflectivity();						// 反射率(R)
 	double				GetReflectivitySnow();					// 反射率(R)
-	double				GetDemHeight();							// 標高しきい値[m]
+	double				GetDemHeight_Build();					// 建物解析用の標高しきい値[m]
+	double				GetDemHeight_Land();					// 土地解析用の標高しきい値[m]
 	double				GetDemDist();							// 判定対象とするDEMの距離[m]
 	double				GetNeighborBuildDist_SolarRad();		// 近隣建物の検索範囲[m]
 
@@ -44,7 +45,8 @@ private:
 	double			m_dTransmissivity[12];	// 大気透過率(P)
 	double			m_dReflectivity;		// 反射率(R)
 	double			m_dReflectivitySnow;	// 積雪時の反射率(R)
-	double			m_dDemHeight;			// 標高しきい値[m]
+	double			m_dDemHeight_Build;		// 建物解析用のDEM標高しきい値[m]
+	double			m_dDemHeight_Land;		// 土地解析用のDEM標高しきい値[m]
 	double			m_dDemDist;				// 判定対象とするDEMの距離[m]
 	double			m_dBuildDist_SolarRad;		// 近隣建物の検索範囲[m]
 	double			m_dBuildDist_Reflection;	// 近隣建物の検索範囲[m]

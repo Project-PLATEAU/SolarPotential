@@ -6,6 +6,7 @@
 #include "BuildingData.h"
 #include "../../LIB/CommonUtil/CGeoUtil.h"
 #include "../../LIB/CommonUtil/StringEx.h"
+#include "UIParam.h"
 
 class CImportRestrictAreaData
 {
@@ -52,8 +53,9 @@ public:
 		setlocale(LC_ALL, "");
 		m_strFilePath = CStringEx::ToWString(path);
 	};
-	bool ReadData();
+	bool ReadData(eDatum datum);
 	bool IsBuildingInRestrictArea(const std::vector<ROOFSURFACES> pRoofSurfaceList);
+	bool IsLandInRestrictArea(const std::vector<CPoint2D> pSurface);
 
 private:
 	std::wstring				m_strFilePath;				// 入力ファイルパス
